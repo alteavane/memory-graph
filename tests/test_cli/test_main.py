@@ -50,3 +50,33 @@ class TestUpdateOptionalContent:
         assert result.exit_code == 0, result.output
         history = patched.get_node_history(entity.id)
         assert history[1].content == "nuovo contenuto"
+
+
+class TestLinkCommand:
+    def test_link_creates_edge(self, patched):
+        n1 = patched.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        n2 = patched.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
+        result = runner.invoke(app, [
+            "link",
+            "--from", n1.id,
+            "--to", n2.id,
+            "--type", "supporta",
+            "--confidence", "0.8",
+        ])
+        assert result.exit_code == 0, result.output
+        graph = patched.get_graph("u1")
+        assert len(graph["edges"]) == 1
+        assert graph["edges"][0].type == EdgeType.SUPPORTA
+
+    def test_link_output_shows_edge_id(self, patched):
+        n1 = patched.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        n2 = patched.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
+        result = runner.invoke(app, [
+            "link",
+            "--from", n1.id,
+            "--to", n2.id,
+            "--type", "contraddice",
+            "--confidence", "0.6",
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Arco creato" in result.output

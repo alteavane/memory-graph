@@ -161,6 +161,19 @@ def show(
         console.print(edge_table)
 
 
+@app.command(name="link")
+def link(
+    from_node: str = typer.Option(..., "--from", help="ID nodo sorgente"),
+    to_node: str = typer.Option(..., "--to", help="ID nodo destinazione"),
+    type: EdgeType = typer.Option(..., help="Tipo arco"),
+    confidence: float = typer.Option(..., help="Confidence 0.0–1.0"),
+) -> None:
+    """Crea un arco tra due nodi (alias ergonomico di edge-create)."""
+    store = _get_store()
+    edge = store.create_edge(from_node, to_node, type, confidence)
+    console.print(f"[green]✓[/green] Arco creato: [bold]{edge.edge_id}[/bold] ({edge.type.value})")
+
+
 @app.command(name="edge-create")
 def edge_create(
     from_node: str = typer.Option(..., "--from", help="ID nodo sorgente"),
