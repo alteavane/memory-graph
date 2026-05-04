@@ -155,7 +155,9 @@ class GraphStore:
     def invalidate_edge(self, edge_id: str) -> Edge:
         """
         Invalida un arco: delete + re-insert con invalidated_at = now().
-        Mai DELETE permanente — la storia è immutabile.
+        NOTA: non è atomico — se il re-insert fallisce, l'arco originale è perso.
+        Kuzu embedded non supporta transazioni esplicite in questa versione.
+        Mai cancellazione permanente durante operazione corretta.
         """
         now = datetime.now(timezone.utc).replace(tzinfo=None)
 
