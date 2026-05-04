@@ -47,6 +47,39 @@ class GraphStore:
 
         return NodeEntity(id=entity_id, user_id=user_id, type=type, created_at=now)
 
+    def update_node(
+        self,
+        node_id: str,
+        content: str,
+        confidence: float,
+        trigger: str,
+    ) -> NodeState:
+        """Crea un nuovo NodeState (version = max + 1). Non modifica mai i precedenti."""
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        state_id = str(uuid.uuid4())
+
+        result = self._conn.execute(
+            "MATCH (e:NodeEntity)-[:HAS_STATE]->(s:NodeState) WHERE e.id = $nid RETURN MAX(s.version) AS max_v",
+            {"nid": node_id},
+        )
+        row = result.get_next()
+        max_version: int = row[0] if row[0] is not None else 0
+        new_version = max_version + 1
+
+        self._conn.execute(
+            "CREATE (s:NodeState {id: $id, version: $version, content: $content, confidence: $conf, trigger: $trigger, created_at: $ts})",
+            {"id": state_id, "version": new_version, "content": content, "conf": confidence, "trigger": trigger, "ts": now},
+        )
+        self._conn.execute(
+            "MATCH (e:NodeEntity), (s:NodeState) WHERE e.id = $eid AND s.id = $sid CREATE (e)-[:HAS_STATE]->(s)",
+            {"eid": node_id, "sid": state_id},
+        )
+
+        return NodeState(
+            id=state_id, node_id=node_id, version=new_version,
+            content=content, confidence=confidence, trigger=trigger, created_at=now,
+        )
+
     def get_node_history(self, node_id: str) -> list[NodeState]:
         """Tutti i NodeState del nodo in ordine cronologico (version ASC)."""
         result = self._conn.execute(

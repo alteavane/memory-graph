@@ -36,3 +36,30 @@ class TestCreateNode:
         e1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
         e2 = store.create_node("u1", NodeType.HYPOTHESIS, "B", 0.6, "t")
         assert e1.id != e2.id
+
+
+class TestUpdateNode:
+    def test_increments_version(self, store):
+        entity = store.create_node("u1", NodeType.HYPOTHESIS, "v1", 0.5, "t1")
+        state = store.update_node(entity.id, "v2", 0.7, "nuova evidenza")
+        assert state.version == 2
+        assert state.content == "v2"
+        assert state.confidence == 0.7
+
+    def test_preserves_previous_states(self, store):
+        entity = store.create_node("u1", NodeType.HYPOTHESIS, "v1", 0.5, "t1")
+        store.update_node(entity.id, "v2", 0.7, "t2")
+        history = store.get_node_history(entity.id)
+        assert len(history) == 2
+        assert history[0].version == 1
+        assert history[0].content == "v1"
+        assert history[1].version == 2
+        assert history[1].content == "v2"
+
+    def test_multiple_updates_increment_correctly(self, store):
+        entity = store.create_node("u1", NodeType.HYPOTHESIS, "v1", 0.3, "t1")
+        store.update_node(entity.id, "v2", 0.5, "t2")
+        state3 = store.update_node(entity.id, "v3", 0.8, "t3")
+        assert state3.version == 3
+        history = store.get_node_history(entity.id)
+        assert [s.version for s in history] == [1, 2, 3]
