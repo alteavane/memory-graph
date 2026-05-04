@@ -81,12 +81,12 @@ def history(
         console.print("[yellow]Nessuno stato trovato per questo nodo.[/yellow]")
         return
 
-    table = Table(title=f"Storia nodo: {node_id}", show_lines=True)
-    table.add_column("Ver", style="cyan", width=4)
-    table.add_column("Conf", width=6)
-    table.add_column("Contenuto", min_width=30)
-    table.add_column("Trigger", min_width=20)
-    table.add_column("Creato", width=19)
+    table = Table(title=f"Storia nodo: {node_id}", show_lines=True, expand=True)
+    table.add_column("Ver", style="cyan", width=4, no_wrap=True)
+    table.add_column("Conf", width=6, no_wrap=True)
+    table.add_column("Contenuto", ratio=2)
+    table.add_column("Trigger", ratio=1)
+    table.add_column("Creato", width=19, no_wrap=True)
     for s in states:
         table.add_row(str(s.version), _fmt_conf(s.confidence), s.content, s.trigger, _fmt_ts(s.created_at))
     console.print(table)
@@ -131,12 +131,12 @@ def show(
     console.print(f"\n[bold]Grafo utente:[/bold] {user_id}  ({len(nodes)} nodi, {len(edges)} archi)\n")
 
     if nodes:
-        node_table = Table(title="Nodi (stato più recente)", show_lines=True)
-        node_table.add_column("ID", width=8)
-        node_table.add_column("Tipo", width=14)
-        node_table.add_column("Conf", width=6)
-        node_table.add_column("Contenuto", min_width=30)
-        node_table.add_column("Trigger", min_width=20)
+        node_table = Table(title="Nodi (stato più recente)", show_lines=True, expand=True)
+        node_table.add_column("ID", width=8, no_wrap=True)
+        node_table.add_column("Tipo", width=12, no_wrap=True)
+        node_table.add_column("Conf", width=6, no_wrap=True)
+        node_table.add_column("Contenuto", ratio=2)
+        node_table.add_column("Trigger", ratio=1)
         for entity, state in nodes:
             node_table.add_row(
                 entity.id[:8], entity.type.value,
