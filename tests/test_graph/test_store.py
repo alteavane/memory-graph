@@ -138,6 +138,10 @@ class TestEdges:
         graph = store.get_graph("u1")
         assert len(graph["edges"]) == 0
 
+    def test_invalidate_nonexistent_edge_raises(self, store):
+        with pytest.raises(ValueError, match="not found"):
+            store.invalidate_edge("nonexistent-edge-id")
+
     def test_invalidate_preserves_edge_data(self, store):
         n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
         n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
