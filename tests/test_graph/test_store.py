@@ -101,3 +101,48 @@ class TestGetGraph:
         store.create_node("u1", NodeType.OBSERVATION, "B", 0.7, "t")
         graph = store.get_graph("u1")
         assert len(graph["nodes"]) == 2
+
+
+class TestEdges:
+    def test_create_edge_returns_edge(self, store):
+        n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        assert edge.edge_id is not None
+        assert edge.from_node == n1.id
+        assert edge.to_node == n2.id
+        assert edge.type == EdgeType.SUPPORTA
+        assert edge.confidence == 0.9
+        assert edge.invalidated_at is None
+
+    def test_create_edge_appears_in_graph(self, store):
+        n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        graph = store.get_graph("u1")
+        assert len(graph["edges"]) == 1
+        assert graph["edges"][0].edge_id == edge.edge_id
+
+    def test_invalidate_edge_sets_timestamp(self, store):
+        n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        invalidated = store.invalidate_edge(edge.edge_id)
+        assert invalidated.invalidated_at is not None
+
+    def test_invalidated_edge_not_in_graph(self, store):
+        n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        store.invalidate_edge(edge.edge_id)
+        graph = store.get_graph("u1")
+        assert len(graph["edges"]) == 0
+
+    def test_invalidate_preserves_edge_data(self, store):
+        n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
+        edge = store.create_edge(n1.id, n2.id, EdgeType.CONTRADDICE, 0.75)
+        invalidated = store.invalidate_edge(edge.edge_id)
+        assert invalidated.edge_id == edge.edge_id
+        assert invalidated.type == EdgeType.CONTRADDICE
+        assert invalidated.confidence == 0.75

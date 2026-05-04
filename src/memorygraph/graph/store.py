@@ -133,6 +133,57 @@ class GraphStore:
 
         return {"nodes": list(seen.values()), "edges": edges}
 
+    def create_edge(
+        self,
+        from_id: str,
+        to_id: str,
+        type: EdgeType,
+        confidence: float,
+    ) -> Edge:
+        """Crea una relazione CONNECTS tra due NodeEntity."""
+        edge_id = str(uuid.uuid4())
+        self._conn.execute(
+            """
+            MATCH (a:NodeEntity), (b:NodeEntity)
+            WHERE a.id = $from_id AND b.id = $to_id
+            CREATE (a)-[:CONNECTS {edge_id: $eid, type: $type, confidence: $conf, invalidated_at: null}]->(b)
+            """,
+            {"from_id": from_id, "to_id": to_id, "eid": edge_id, "type": type.value, "conf": confidence},
+        )
+        return Edge(edge_id=edge_id, from_node=from_id, to_node=to_id, type=type, confidence=confidence)
+
+    def invalidate_edge(self, edge_id: str) -> Edge:
+        """
+        Invalida un arco: delete + re-insert con invalidated_at = now().
+        Mai DELETE permanente — la storia è immutabile.
+        """
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        result = self._conn.execute(
+            "MATCH (a:NodeEntity)-[r:CONNECTS]->(b:NodeEntity) WHERE r.edge_id = $eid RETURN a.id, b.id, r.type, r.confidence",
+            {"eid": edge_id},
+        )
+        row = result.get_next()
+        from_id, to_id, edge_type_str, confidence = row[0], row[1], row[2], row[3]
+
+        self._conn.execute(
+            "MATCH (a:NodeEntity)-[r:CONNECTS]->(b:NodeEntity) WHERE r.edge_id = $eid DELETE r",
+            {"eid": edge_id},
+        )
+        self._conn.execute(
+            """
+            MATCH (a:NodeEntity), (b:NodeEntity)
+            WHERE a.id = $from_id AND b.id = $to_id
+            CREATE (a)-[:CONNECTS {edge_id: $eid, type: $type, confidence: $conf, invalidated_at: $now}]->(b)
+            """,
+            {"from_id": from_id, "to_id": to_id, "eid": edge_id, "type": edge_type_str, "conf": confidence, "now": now},
+        )
+
+        return Edge(
+            edge_id=edge_id, from_node=from_id, to_node=to_id,
+            type=EdgeType(edge_type_str), confidence=confidence, invalidated_at=now,
+        )
+
     def get_node_history(self, node_id: str) -> list[NodeState]:
         """Tutti i NodeState del nodo in ordine cronologico (version ASC)."""
         result = self._conn.execute(
