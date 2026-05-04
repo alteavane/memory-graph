@@ -80,6 +80,59 @@ class GraphStore:
             content=content, confidence=confidence, trigger=trigger, created_at=now,
         )
 
+    def get_graph(self, user_id: str) -> dict:
+        """
+        Snapshot attuale del grafo utente.
+        Ritorna: {"nodes": list[tuple[NodeEntity, NodeState]], "edges": list[Edge]}
+        Solo nodi non deleted con il loro stato più recente. Solo archi non invalidati.
+        """
+        node_result = self._conn.execute(
+            """
+            MATCH (e:NodeEntity)-[:HAS_STATE]->(s:NodeState)
+            WHERE e.user_id = $uid AND e.is_deleted = false
+            RETURN e.id, e.user_id, e.type, e.created_at, e.is_deleted,
+                   s.id, s.version, s.content, s.confidence, s.trigger, s.created_at
+            ORDER BY e.id ASC, s.version DESC
+            """,
+            {"uid": user_id},
+        )
+
+        seen: dict[str, tuple[NodeEntity, NodeState]] = {}
+        while node_result.has_next():
+            row = node_result.get_next()
+            node_id = row[0]
+            if node_id not in seen:
+                entity = NodeEntity(
+                    id=row[0], user_id=row[1], type=NodeType(row[2]),
+                    created_at=row[3], is_deleted=row[4],
+                )
+                state = NodeState(
+                    id=row[5], node_id=node_id, version=row[6],
+                    content=row[7], confidence=row[8], trigger=row[9], created_at=row[10],
+                )
+                seen[node_id] = (entity, state)
+
+        edge_result = self._conn.execute(
+            """
+            MATCH (a:NodeEntity)-[r:CONNECTS]->(b:NodeEntity)
+            WHERE a.user_id = $uid
+            RETURN r.edge_id, a.id, b.id, r.type, r.confidence, r.invalidated_at
+            """,
+            {"uid": user_id},
+        )
+        edges: list[Edge] = []
+        while edge_result.has_next():
+            row = edge_result.get_next()
+            invalidated_at = row[5]
+            if invalidated_at is not None:
+                continue
+            edges.append(Edge(
+                edge_id=row[0], from_node=row[1], to_node=row[2],
+                type=EdgeType(row[3]), confidence=row[4], invalidated_at=None,
+            ))
+
+        return {"nodes": list(seen.values()), "edges": edges}
+
     def get_node_history(self, node_id: str) -> list[NodeState]:
         """Tutti i NodeState del nodo in ordine cronologico (version ASC)."""
         result = self._conn.execute(

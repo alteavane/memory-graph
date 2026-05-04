@@ -63,3 +63,41 @@ class TestUpdateNode:
         assert state3.version == 3
         history = store.get_node_history(entity.id)
         assert [s.version for s in history] == [1, 2, 3]
+
+
+class TestGetGraph:
+    def test_returns_nodes_with_latest_state(self, store):
+        entity = store.create_node("u1", NodeType.HYPOTHESIS, "v1", 0.5, "t1")
+        store.update_node(entity.id, "v2", 0.8, "t2")
+        graph = store.get_graph("u1")
+        assert len(graph["nodes"]) == 1
+        _, state = graph["nodes"][0]
+        assert state.version == 2
+        assert state.content == "v2"
+
+    def test_isolates_by_user_id(self, store):
+        store.create_node("alice", NodeType.HYPOTHESIS, "alice content", 0.5, "t")
+        store.create_node("bob", NodeType.OBSERVATION, "bob content", 0.6, "t")
+        graph = store.get_graph("alice")
+        assert len(graph["nodes"]) == 1
+        assert graph["nodes"][0][0].user_id == "alice"
+
+    def test_excludes_deleted_nodes(self, store):
+        entity = store.create_node("u1", NodeType.HYPOTHESIS, "content", 0.5, "t")
+        store._conn.execute(
+            "MATCH (n:NodeEntity) WHERE n.id = $id SET n.is_deleted = true",
+            {"id": entity.id},
+        )
+        graph = store.get_graph("u1")
+        assert len(graph["nodes"]) == 0
+
+    def test_returns_empty_edges_when_none(self, store):
+        store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        graph = store.get_graph("u1")
+        assert graph["edges"] == []
+
+    def test_multiple_nodes_returned(self, store):
+        store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
+        store.create_node("u1", NodeType.OBSERVATION, "B", 0.7, "t")
+        graph = store.get_graph("u1")
+        assert len(graph["nodes"]) == 2
