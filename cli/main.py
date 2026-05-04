@@ -46,12 +46,18 @@ def create(
 @app.command()
 def update(
     node_id: str = typer.Option(..., help="ID del nodo da aggiornare"),
-    content: str = typer.Option(..., help="Nuovo contenuto"),
+    content: str | None = typer.Option(None, help="Nuovo contenuto (se omesso, riusa il precedente)"),
     confidence: float = typer.Option(..., help="Nuova confidence 0.0–1.0"),
     trigger: str = typer.Option(..., help="Perché è cambiata questa credenza?"),
 ) -> None:
     """Aggiorna un nodo creando un nuovo stato (non modifica i precedenti)."""
     store = _get_store()
+    if content is None:
+        history = store.get_node_history(node_id)
+        if not history:
+            console.print("[red]Errore:[/red] Nessuno stato trovato per questo nodo.")
+            raise typer.Exit(1)
+        content = history[-1].content
     state = store.update_node(node_id, content, confidence, trigger)
     console.print(f"[green]✓[/green] Nodo aggiornato: versione [bold]{state.version}[/bold]")
 
@@ -81,7 +87,7 @@ def history(
         console.print("[yellow]Nessuno stato trovato per questo nodo.[/yellow]")
         return
 
-    table = Table(title=f"Storia nodo: {node_id}", show_lines=True, expand=True)
+    table = Table(title=f"Storia: {node_id[:8]}…", show_lines=True, expand=True)
     table.add_column("Ver", style="cyan", width=4, no_wrap=True)
     table.add_column("Conf", width=6, no_wrap=True)
     table.add_column("Contenuto", ratio=2)
