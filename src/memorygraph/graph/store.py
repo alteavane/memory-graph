@@ -164,6 +164,8 @@ class GraphStore:
             {"eid": edge_id},
         )
         row = result.get_next()
+        if row is None:
+            raise ValueError(f"Edge {edge_id} not found")
         from_id, to_id, edge_type_str, confidence = row[0], row[1], row[2], row[3]
 
         self._conn.execute(
