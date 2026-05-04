@@ -1,0 +1,8 @@
+import os
+from pathlib import Path
+
+_project_root = Path(__file__).parent.parent.parent
+DB_PATH = os.getenv(
+    "MEMORYGRAPH_DB_PATH",
+    str(_project_root / "data" / "memorygraph.kuzu"),
+)
