@@ -174,10 +174,11 @@ PatternType = Enum(
   - [x] `get_graph(user_id)` → snapshot attuale del grafo utente
   - [x] `create_edge(from_id, to_id, type, confidence)`
   - [x] `invalidate_edge(edge_id)` → mai delete
-- [x] CLI base: `create`, `update`, `history`, `show`, `edge-create`, `edge-invalidate`
-- [x] Test unitari GraphStore (copertura >80%)
+- [x] CLI base: `create`, `update`, `history`, `show`, `edge-create`, `edge-invalidate`, `link`
+- [x] `update --content` opzionale — riusa il contenuto dell'ultimo stato se omesso
+- [x] Test unitari GraphStore (copertura >80%) — attuale: 98%, `store.py` 100%
 
-### ⏳ Fase 2 — Memory Agent
+### 🔄 Fase 2 — Memory Agent (IN CORSO)
 - LLM extractor, quality gate, confidence estimator, contradiction detector
 
 ### ⏳ Fase 3 — Auth & Consent Layer
@@ -281,5 +282,5 @@ La materia oscura diventa dato pubblicato.
 
 ---
 
-*Ultima modifica: Maggio 2026 — RFC v0.1*
+*Ultima modifica: 2026-05-04 — Fase 1 completa, Fase 2 avviata*
 *Aggiorna questo file a ogni cambio di stato della roadmap.*
