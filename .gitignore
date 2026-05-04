@@ -1,0 +1,11 @@
+data/*.kuzu
+data/memorygraph.kuzu*
+__pycache__/
+*.pyc
+.env
+.venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
