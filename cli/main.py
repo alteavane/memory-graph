@@ -10,6 +10,7 @@ from rich.table import Table
 from memorygraph.config import DB_PATH
 from memorygraph.graph.models import EdgeType, NodeType
 from memorygraph.graph.store import GraphStore
+from memorygraph.context import ContextStore
 
 app = typer.Typer(help="MemoryGraph CLI — graph store personale basato su credenze.")
 console = Console()
@@ -17,6 +18,10 @@ console = Console()
 
 def _get_store() -> GraphStore:
     return GraphStore(DB_PATH)
+
+
+def _get_context() -> ContextStore:
+    return ContextStore(DB_PATH)
 
 
 def _fmt_ts(dt: datetime | None) -> str:
@@ -195,6 +200,36 @@ def edge_invalidate(
     store = _get_store()
     edge = store.invalidate_edge(edge_id)
     console.print(f"[yellow]⊘[/yellow] Arco invalidato: [bold]{edge.edge_id}[/bold] alle {_fmt_ts(edge.invalidated_at)}")
+
+
+@app.command(name="project-create")
+def project_create(
+    user_id: str = typer.Option(..., help="ID utente"),
+    title: str = typer.Option(..., help="Titolo del progetto"),
+    objective: str = typer.Option(..., help="Obiettivo della ricerca"),
+    summary: str = typer.Option(..., help="Summary pubblico (viaggia con SubgraphToken)"),
+    full_context: str = typer.Option(..., help="Contesto completo — PRIVATO, solo agente"),
+) -> None:
+    """Crea un nuovo Project con visibilità differenziata summary/full_context."""
+    ctx = _get_context()
+    project = ctx.projects.create_project(user_id, title, objective, summary, full_context)
+    console.print(f"[green]✓[/green] Project creato: [bold]{project.id}[/bold]")
+    console.print(f"  Titolo: {project.title}")
+    console.print(f"  Summary: {project.summary}")
+
+
+@app.command(name="project-assign")
+def project_assign(
+    node_id: str = typer.Option(..., help="ID del nodo epistemico"),
+    project_id: str = typer.Option(..., help="ID del Project"),
+) -> None:
+    """Assegna un nodo a un Project (crea arco appartiene_a)."""
+    ctx = _get_context()
+    ctx.attach_node(node_id, project_id)
+    console.print(
+        f"[green]✓[/green] Nodo [bold]{node_id[:8]}[/bold] "
+        f"assegnato al project [bold]{project_id[:8]}[/bold]"
+    )
 
 
 if __name__ == "__main__":
