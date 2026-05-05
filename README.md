@@ -1,321 +1,321 @@
 # MemoryGraph
 
-> *Il processo del pensiero, reso permanente.*
+> *The process of thinking, made permanent.*
 
-La maggior parte di ciò che i ricercatori imparano davvero non viene mai registrata.
-L'ipotesi fallita alle 23. Il cambio di rotta dopo un'osservazione sbagliata.
-Il vicolo cieco che ha richiesto tre settimane — e avrebbe risparmiato tre mesi alla persona successiva.
+Most of what researchers actually learn never gets recorded.
+The failed hypothesis at 11pm. The pivot after a wrong observation.
+The dead end that took three weeks — and would have saved the next person three months.
 
-Questa conoscenza scompare. Non perché le persone non vogliano preservarla.
-Ma perché ogni sistema esistente richiede un atto di volontà aggiuntivo per farlo.
+This knowledge disappears. Not because people don't want to preserve it.
+Because every existing system asks for an extra act of will to do so.
 
-**MemoryGraph la cattura automaticamente — come effetto collaterale del pensiero, non come lavoro extra.**
+**MemoryGraph captures it automatically — as a side effect of thinking, not as additional work.**
 
 ---
 
-## L'idea centrale
+## The core idea
 
-Ogni unità di pensiero vive come nodo in un grafo di conoscenza personale.
-Osservazioni, ipotesi, conclusioni, vicoli ciechi, domande aperte.
-Ogni nodo porta con sé una storia temporale completa — ogni cambiamento di credenza, ogni svolta, ogni momento in cui la fiducia è cambiata e perché.
+Every unit of thought lives as a node in a personal knowledge graph.
+Observations, hypotheses, conclusions, dead ends, open questions.
+Each node carries a full temporal history — every change in belief, every pivot, every moment confidence shifted and why.
 
-Il grafo non è mai uno snapshot. **È una registrazione.**
+The graph is never a snapshot. **It is a recording.**
 
-Quando due ricercatori devono condividere conoscenza, non scrivono un documento e non fissano una riunione.
-Uno emette un **subgraph token** firmato — una selezione precisa di nodi — verso l'altro.
-Il destinatario riceve un fork isolato. Lo sviluppa liberamente.
-Se scopre qualcosa di prezioso, propone un merge.
-L'agente del mittente analizza il delta semantico prima che un umano approvi.
+When two researchers need to share knowledge, they don't write a document or schedule a meeting.
+One issues a signed **subgraph token** — a precise selection of nodes — to the other.
+The recipient receives an isolated fork. They develop it freely.
+If they discover something valuable, they propose a merge.
+The sender's agent analyzes the semantic delta before any human approves.
 
-Questo è **Git per la conoscenza**. Non come metafora. Come architettura.
+This is **Git for knowledge**. Not metaphorically. Architecturally.
 
 | Git | MemoryGraph |
 |---|---|
-| Repository | Grafo di conoscenza personale |
-| Commit | NodeState — una credenza catturata in un momento nel tempo |
-| Fork | SubgraphToken — una copia firmata di nodi selezionati |
-| Diff | Delta semantico tra due traiettorie di nodi |
-| Pull request | MergeProposal — con rilevamento dei conflitti |
-| Merge conflict | Nodi con traiettorie di fiducia contraddittorie |
+| Repository | Personal knowledge graph |
+| Commit | NodeState — a belief captured at a moment in time |
+| Fork | SubgraphToken — a signed copy of selected nodes |
+| Diff | Semantic delta between two node trajectories |
+| Pull request | MergeProposal — with conflict detection |
+| Merge conflict | Nodes with contradicting confidence trajectories |
 
 ---
 
-## Perché questo è importante
+## Why this matters
 
-> **100 miliardi di dollari** vengono sprecati ogni anno in duplicazione della ricerca per mancata condivisione dei risultati negativi.
-> **L'85%** dei fondi di ricerca va perso in parte per la pubblicazione selettiva di dati negativi.
-> **~0** strumenti esistenti catturano il *processo* di ricerca senza richiedere sforzo aggiuntivo.
+> **$100 billion** is wasted annually in research duplication due to unreported negative results.
+> **85%** of research funds are lost in part to selective non-publication.
+> **~0** existing tools capture the research *process* without asking for extra effort.
 
-Ogni tentativo di risolvere questo problema è fallito per la stessa ragione:
-richiedono un atto deliberato e postumo di pubblicazione.
-Più lavoro. Nessuna ricompensa. Nessuna adozione.
+Every attempt to fix this has failed for the same reason:
+they require a deliberate, post-hoc act of publication.
+More work. No reward. No adoption.
 
-MemoryGraph elimina l'atto del tutto.
-La conoscenza viene catturata **durante** il processo, non dopo.
-I vicoli ciechi diventano dati di prima classe. La materia oscura della ricerca ha finalmente un posto dove esistere.
-
----
-
-## Principi di design
-
-**Nessun punto di buio.**
-Ogni cambiamento di credenza, ogni esperimento fallito, ogni momento di dubbio è un dato.
-La traiettoria del pensiero è preziosa quanto la destinazione.
-
-**Il consenso è granulare e revocabile.**
-Nessun accesso senza un token esplicito e firmato.
-Condividere un sottografo non espone mai il grafo completo.
-Ogni token ha un emittente, un destinatario, un perimetro e una scadenza.
-
-**L'agente suggerisce. L'umano decide.**
-Il Memory Agent osserva e aggiorna il grafo in modo continuo.
-Può proporre un match, segnalare un conflitto, suggerire un merge.
-Non agisce mai senza approvazione.
-
-**Niente viene mai cancellato.**
-Nodi e archi vengono invalidati con un timestamp, mai rimossi.
-La storia del grafo è immutabile. Si può sempre tornare indietro.
+MemoryGraph removes the act entirely.
+The knowledge is captured **during** the process, not after it.
+Dead ends become first-class data. The dark matter of research finally has a place to live.
 
 ---
 
-## Architettura
+## Design principles
 
-Quattro layer. Ognuno con una singola responsabilità.
+**No dark periods.**
+Every change in belief, every failed experiment, every moment of doubt is a data point.
+The trajectory of thought is as valuable as the destination.
+
+**Consent is granular and revocable.**
+No access without an explicit, signed token.
+Sharing a subgraph never exposes the full graph.
+Every token has an issuer, a recipient, a scope, and an expiry.
+
+**The agent suggests. The human decides.**
+The Memory Agent observes and updates the graph continuously.
+It can propose a match, surface a conflict, suggest a merge.
+It never acts without approval.
+
+**Nothing is ever deleted.**
+Nodes and edges are invalidated with a timestamp, never removed.
+The history of the graph is immutable. You can always go back.
+
+---
+
+## Architecture
+
+Four layers. Each with a single responsibility.
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  L4 — Fork / Merge Engine                           │
-│  SubgraphToken · MergeProposal · diff semantico     │
+│  SubgraphToken · MergeProposal · semantic diff      │
 ├─────────────────────────────────────────────────────┤
 │  L3 — Auth & Consent Layer                          │
-│  token firmati · scadenza · revoca · UserConsent    │
+│  signed tokens · expiry · revocation · UserConsent  │
 ├─────────────────────────────────────────────────────┤
 │  L2 — Memory Agent                                  │
-│  estrazione entità · quality gate · pattern detect  │
+│  entity extraction · quality gate · pattern detect  │
 ├─────────────────────────────────────────────────────┤
 │  L1 — Graph Store                                   │
 │  Kuzu (embedded) · multi-tenant · append-only       │
 └─────────────────────────────────────────────────────┘
 ```
 
-**Graph Store** — Il primitivo di dato principale. Ogni utente possiede un sottografo isolato.
-I nodi sono unità epistemiche tipizzate. Gli archi sono relazioni tipizzate. Niente viene mai cancellato.
-Consigliato: [Kuzu](https://kuzudb.com/) per il prototipo; Neo4j o FalkorDB per la scala.
+**Graph Store** — The primary data primitive. Each user owns an isolated subgraph.
+Nodes are typed epistemic units. Edges are typed relationships. Nothing is ever deleted.
+Recommended: [Kuzu](https://kuzudb.com/) for prototype; Neo4j or FalkorDB for scale.
 
-**Memory Agent** — Osserva il flusso di input dell'utente e aggiorna continuamente il grafo.
-Estrae entità, crea nodi, rileva contraddizioni.
-Applica un quality gate prima di ogni scrittura — non tutto appartiene al grafo.
-LLM-agnostico: funziona con qualsiasi modello tramite prompting strutturato.
+**Memory Agent** — Observes the user's input stream and continuously updates the graph.
+Extracts entities, creates nodes, detects contradictions.
+Applies a quality gate before every write — not everything belongs in the graph.
+LLM-agnostic: works with any model via structured prompting.
 
-**Auth & Consent Layer** — Ogni operazione di condivisione produce un `SubgraphToken`.
-Un oggetto firmato che elenca esattamente quali nodi vengono condivisi, con quali permessi, con quale scadenza.
-Nessun accesso senza token valido. Il consenso è esplicito, granulare, revocabile.
+**Auth & Consent Layer** — Every sharing operation produces a `SubgraphToken`.
+A signed object listing exactly which nodes are shared, with what permissions, with what expiry.
+No access without a valid token. Consent is explicit, granular, revocable.
 
-**Fork / Merge Engine** — La condivisione produce una copia isolata, mai una vista live.
-Il destinatario sviluppa il fork liberamente.
-`MergeProposal` presenta un diff semantico prima che un umano approvi l'integrazione.
+**Fork / Merge Engine** — Sharing produces an isolated copy, never a live view.
+The recipient develops the fork freely.
+`MergeProposal` presents a semantic diff before any human approves integration.
 
 ---
 
 ## Schema
 
 ```python
-# L'unità fondamentale di credenza
+# The core belief unit
 NodeEntity:
   id              UUID
-  user_id         UUID        # isolamento multi-tenant
+  user_id         UUID        # multi-tenant isolation
   type            ENUM        # Observation | Hypothesis | Conclusion
                               # DeadEnd | OpenQuestion | Paper
                               # Experiment | MethodDecision
   created_at      TIMESTAMP
-  is_deleted      BOOL        # soft delete — la storia è immutabile
+  is_deleted      BOOL        # soft delete only — history is immutable
 
-# Una riga per ogni cambiamento di credenza
+# One row per change in belief
 NodeState:
   id              UUID
   node_id         UUID        # → NodeEntity
-  version         INT         # incrementale da 1
+  version         INT         # incremental from 1
   content         TEXT
-  confidence      FLOAT       # 0.0 → 1.0 — il segnale centrale
-  trigger         TEXT        # "perché è cambiato questo?"
-  created_at      TIMESTAMP   # questo È il timestamp di evoluzione
+  confidence      FLOAT       # 0.0 → 1.0 — the core signal
+  trigger         TEXT        # "why did this change?"
+  created_at      TIMESTAMP   # this IS the evolution timestamp
 
-# Relazioni tipizzate tra nodi
+# Typed relationships between nodes
 Edge:
   from_node       UUID
   to_node         UUID
   type            ENUM        # supporta | contraddice | deriva_da
                               # falsifica | apre_domanda | risolve
-  confidence      FLOAT       # anche gli archi portano certezza
-  invalidated_at  TIMESTAMP   # null se ancora valido — non si cancella
+  confidence      FLOAT       # edges also carry certainty
+  invalidated_at  TIMESTAMP   # null if still valid — never delete
 
-# L'unità di condivisione consensuale
+# The unit of consensual sharing
 SubgraphToken:
   issuer_id       UUID
   recipient_id    UUID
   node_ids        JSONB       # [{id, include_history: bool}]
   forkable        BOOL
   expires_at      TIMESTAMP
-  signature       TEXT        # hash di integrità
+  signature       TEXT        # integrity hash
 
-# Primitivo per il pattern matching cross-grafo
+# Cross-graph pattern matching primitive
 TrajectoryPattern:
   node_id         UUID
   pattern_type    ENUM        # consolidating | collapsing | recovered
                               # oscillating | terminal_deadend
-  context_hash    TEXT        # embedding semantico per il matching cross-utente
+  context_hash    TEXT        # semantic embedding for cross-user matching
   computed_at     TIMESTAMP
 
-# Consenso dell'utente per la partecipazione alla rete
+# User-level consent for network participation
 UserNetworkConsent:
-  discoverable    BOOL        # il mio grafo è ricercabile dalla rete?
-  share_deadends  BOOL        # includo le traiettorie fallite nei match?
-  share_triggers  BOOL        # condivido il testo del "perché"?
-  auto_propose    BOOL        # l'agente può proporre match in autonomia?
+  discoverable    BOOL        # is my graph searchable?
+  share_deadends  BOOL        # include failed trajectories in matches?
+  share_triggers  BOOL        # share the "why" text?
+  auto_propose    BOOL        # can agent propose matches autonomously?
 ```
 
 ---
 
-## Casi d'uso
+## Use cases
 
-### UC-01 — Due ricercatori, un vicolo cieco
+### UC-01 — Two researchers, one dead end
 
-Anna studia il meccanismo di legame delle proteine virali. Bruno studia la risposta immunitaria.
-L'ipotesi di Anna si è costruita per tre settimane — fiducia in crescita fino a 0.7.
-Poi un nuovo esperimento. La fiducia scende a 0.2. Pattern: `collapsing`.
+Anna studies viral protein binding. Bruno studies immune response.
+Anna's hypothesis has been building for three weeks — confidence rising to 0.7.
+Then a new experiment. Confidence drops to 0.2. Pattern: `collapsing`.
 
-Il suo Memory Agent cerca nella rete nodi con contenuto semantico simile
-e pattern type `recovered` — qualcuno che ha avuto lo stesso problema e ne è uscito.
-Il grafo di Bruno ha esattamente questo. Trigger: *"corretto errore nel calcolo del pH"*.
+Her Memory Agent searches the network for nodes with similar semantic content
+and pattern type `recovered` — someone who had the same problem and got out of it.
+Bruno's graph has exactly this. Trigger: *"corrected pH calculation error"*.
 
-L'agente propone. Anna approva.
-Viene emesso un SubgraphToken che copre solo i nodi rilevanti di Bruno.
-Il grafo completo di Bruno non viene mai esposto.
-Anna riceve un fork. Lo sviluppa. Se trova qualcosa di nuovo, propone un merge.
+The agent surfaces a suggestion. Anna approves.
+A SubgraphToken is issued covering only Bruno's relevant nodes.
+Bruno's full graph is never exposed.
+Anna receives a fork. She develops it. If she finds something new, she proposes a merge.
 
-**La materia oscura della ricerca di Bruno risparmia tre settimane ad Anna.**
-
----
-
-### UC-02 — Il ricercatore solitario
-
-Nessun collaboratore. Nessuna rete ancora. Il sistema è comunque utile.
-
-Mentre il ricercatore lavora — leggendo, annotando, sperimentando —
-il grafo si costruisce da solo. Ogni ipotesi ottiene un NodeState.
-Ogni svolta ottiene un trigger.
-
-*"Mostrami come si è evoluta la mia fiducia nell'ipotesi X nelle ultime 8 settimane."*
-
-Il sistema ricostruisce la traiettoria completa — inclusi i vicoli ciechi
-che non erano mai stati scritti da nessuna parte.
-Il ricercatore può viaggiare nel tempo attraverso il proprio pensiero.
+**The dark matter of Bruno's research saves Anna three weeks.**
 
 ---
 
-### UC-03 — Il team di laboratorio
+### UC-02 — The solo researcher
 
-Cinque ricercatori. Stesso progetto. Percorsi paralleli.
-I grafi non si fondono — l'autonomia è preservata.
+No collaborators. No network yet. Still valuable.
 
-Il sistema rileva quando due ricercatori si stanno avvicinando alla stessa ipotesi
-da angoli diversi e invia un segnale: *"Il ricercatore C potrebbe stare lavorando su qualcosa di correlato."*
-Nessun contenuto esposto. Solo un segnale.
+As the researcher works — reading, noting, experimenting —
+the graph builds itself. Every hypothesis gets a NodeState.
+Every pivot gets a trigger.
 
-Quando un ricercatore raggiunge una conclusione che contraddice l'ipotesi attuale di un altro,
-entrambi vengono avvisati. Nessun grafo viene modificato. Gli umani decidono come procedere.
+*"Show me how my confidence in hypothesis X has evolved over the last 8 weeks."*
+
+The system reconstructs the full trajectory — including dead ends
+that were never written down anywhere else.
+The researcher can time-travel through their own thinking.
 
 ---
 
-### UC-04 — Il momento del paper
+### UC-03 — The lab team
 
-Mesi di ricerca. È il momento di scrivere.
+Five researchers. Same project. Parallel tracks.
+The graphs do not merge — autonomy is preserved.
 
-Il grafo contiene già l'arco narrativo completo —
-ogni svolta, ogni vicolo cieco, ogni momento in cui la fiducia è cambiata e perché.
-L'agente ricostruisce la storia della ricerca in ordine cronologico.
-I nodi `MethodDecision` diventano la sezione dei metodi.
-I nodi `DeadEnd` diventano materiale supplementare strutturato.
+The system detects when two researchers are approaching the same hypothesis
+from different angles and surfaces a signal: *"Researcher C may be working on something related."*
+No content exposed. Just a signal.
 
-**La materia oscura diventa dato pubblicato.**
-Il prossimo ricercatore che colpisce lo stesso muro trova la via d'uscita.
+When one researcher reaches a conclusion that contradicts another's current hypothesis,
+both are alerted. Neither graph is modified. Humans decide how to proceed.
+
+---
+
+### UC-04 — The paper moment
+
+Months of research. Time to write.
+
+The graph already contains the full narrative arc —
+every pivot, every dead end, every moment confidence changed and why.
+The agent reconstructs the research story chronologically.
+`MethodDecision` nodes become the methods section.
+`DeadEnd` nodes become structured supplementary material.
+
+**The dark matter becomes published data.**
+The next researcher who hits the same wall finds the path out.
 
 ---
 
 ## Roadmap
 
-**Fase 1 — Fondamenta**
-Graph store con Kuzu · NodeEntity + NodeState con versionamento completo ·
-Invalidazione degli archi (nessuna cancellazione) · Isolamento multi-tenant · CLI di base
+**Phase 1 — Foundation**
+Graph store with Kuzu · NodeEntity + NodeState with full versioning ·
+Edge invalidation (no hard deletes) · Multi-tenant isolation · Basic CLI
 
-**Fase 2 — Memory Agent**
-Estrazione di entità con LLM · Quality gate prima della scrittura nel grafo ·
-Stima della fiducia dal linguaggio · Popolazione del trigger ·
-Rilevamento delle contraddizioni
+**Phase 2 — Memory Agent**
+LLM-powered entity extraction · Quality gate before graph write ·
+Confidence estimation from language · Trigger population ·
+Contradiction detection
 
-**Fase 3 — Protocollo di condivisione**
-Generazione del SubgraphToken · Firma e scadenza ·
-Fork import nel grafo isolato · UserNetworkConsent ·
-REST API di base tra due istanze
+**Phase 3 — Sharing protocol**
+SubgraphToken generation · Signature and expiry ·
+Fork import into isolated graph · UserNetworkConsent ·
+Basic REST API between two instances
 
-**Fase 4 — Pattern matching**
-Calcolo del TrajectoryPattern · Embedding semantici ·
-Ricerca pattern cross-utente con verifica del consenso ·
-MergeProposal con diff semantico ·
-Suggerimenti di match da parte dell'agente
+**Phase 4 — Pattern matching**
+TrajectoryPattern computation · Semantic embeddings ·
+Cross-user pattern search with consent check ·
+MergeProposal with semantic diff ·
+Agent-initiated match suggestions
 
 ---
 
 ## Stack
 
-- **Linguaggio**: Python
-- **Database a grafo**: [Kuzu](https://kuzudb.com/) (embedded, prototipo) → Neo4j / FalkorDB (scala)
-- **LLM**: agnostico — qualsiasi modello tramite prompting strutturato
-- **Embedding**: qualsiasi provider o modello locale
-- **Deployment**: VPS singolo o distribuito (un'istanza per utente)
+- **Language**: Python
+- **Graph database**: [Kuzu](https://kuzudb.com/) (embedded, prototype) → Neo4j / FalkorDB (scale)
+- **LLM**: agnostic — any model via structured prompting
+- **Embeddings**: any provider or local model
+- **Deployment**: single VPS or distributed (one instance per user)
 
 ---
 
-## Come contribuire
+## Contributing
 
-Questo è un RFC aperto. L'architettura qui descritta è un punto di partenza, non una risposta definitiva.
+This is an open RFC. The architecture here is a starting point, not a final answer.
 
-Cerchiamo persone che vogliano:
+We are looking for people who want to:
 
-- **Costruire** — implementare qualsiasi fase della roadmap
-- **Criticare** — aprire issue che sfidano il design, trovare i punti di fallimento
-- **Estendere** — adattatori di dominio (quaderni di laboratorio, ricerca clinica, ingegneria del software, ricerca legale)
-- **Ricercare** — classificazione migliore delle traiettorie, ricerca cross-grafo privacy-preserving, protocolli di consenso
+- **Build** — implement any phase of the roadmap
+- **Critique** — open issues challenging the design, find the failure modes
+- **Extend** — domain adapters (lab notebooks, clinical research, software engineering, legal)
+- **Research** — better trajectory classification, privacy-preserving cross-graph search, consent protocols
 
-Aree in cui il design è esplicitamente aperto:
+Areas where the design is explicitly open:
 
-| Area | Domande aperte |
+| Area | Open questions |
 |---|---|
-| Architettura del grafo | Alternative a Kuzu? Miglioramenti allo schema? |
-| Memory Agent | Design migliore del quality gate? Strategie di stima della fiducia? |
-| Protocollo di consenso | Rafforzamento crittografico? Modellazione GDPR? Revoca? |
-| Pattern matching | Classificazione traiettorie senza esporre il contenuto grezzo? |
-| Cold start | Come rendere utile il grafo di un singolo utente prima che la rete esista? |
+| Graph architecture | Alternatives to Kuzu? Schema improvements? |
+| Memory Agent | Better quality gate design? Confidence estimation strategies? |
+| Consent protocol | Cryptographic hardening? GDPR modeling? Revocation? |
+| Pattern matching | Trajectory classification without exposing raw content? |
+| Cold start | How to make a single-user graph valuable before the network exists? |
 
-Apri una issue. Forka la repo. Rompi il design.
-**L'obiettivo non è il consenso — è il sistema migliore possibile.**
-
----
-
-## La convinzione alla base di questo progetto
-
-La scienza accumula conoscenza attraverso i risultati pubblicati.
-Ma i risultati pubblicati sono il 10% finale di ciò che è stato davvero imparato.
-L'altro 90% — i percorsi falliti, le svolte, le intuizioni che non hanno funzionato —
-scompare in quaderni di laboratorio che nessuno legge, o da nessuna parte.
-
-Questo non è un problema di documentazione. È un problema di infrastruttura.
-Non esiste infrastruttura per il processo del pensiero in sé.
-
-MemoryGraph è un tentativo di costruire quella infrastruttura.
-Non chiedendo ai ricercatori di fare più lavoro.
-Facendo sì che il lavoro che già fanno lasci una traccia permanente e condivisibile.
+Open an issue. Fork the repo. Break the design.
+**The goal is not consensus — it's the best possible system.**
 
 ---
 
-*RFC v0.1 — Maggio 2026 — Licenza MIT*
+## The belief behind this project
+
+Science accumulates knowledge through published results.
+But published results are the final 10% of what was actually learned.
+The other 90% — the failed paths, the pivots, the intuitions that didn't pan out —
+disappears into lab notebooks that no one reads, or nowhere at all.
+
+This is not a documentation problem. It is an infrastructure problem.
+No infrastructure exists for the process of thinking itself.
+
+MemoryGraph is an attempt to build that infrastructure.
+Not by asking researchers to do more work.
+By making the work they already do leave a permanent, shareable trace.
+
+---
+
+*RFC v0.1 — May 2026 — MIT License*
