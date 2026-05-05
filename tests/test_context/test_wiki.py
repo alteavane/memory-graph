@@ -97,3 +97,93 @@ class TestGetWikiHistory:
 
     def test_returns_empty_for_unknown_wiki(self, wiki):
         assert wiki.get_wiki_history("nonexistent") == []
+
+
+# ── list_wiki_pages ───────────────────────────────────────────────────────────
+
+class TestListWikiPages:
+    def test_returns_latest_state_only(self, wiki, project_id):
+        entity = wiki.create_wiki_page("u1", project_id, "T", "v1", "s1")
+        wiki.update_wiki_page(entity.id, "v2", "s2")
+        pages = wiki.list_wiki_pages(project_id)
+        assert len(pages) == 1
+        _, state = pages[0]
+        assert state.version == 2
+        assert state.content == "v2"
+
+    def test_returns_entity_and_state_pair(self, wiki, project_id):
+        entity = wiki.create_wiki_page("u1", project_id, "Titolo", "C", "S")
+        pages = wiki.list_wiki_pages(project_id)
+        ent, state = pages[0]
+        assert ent.title == "Titolo"
+        assert ent.id == entity.id
+        assert state.version == 1
+
+    def test_excludes_deleted_pages(self, wiki, project_id, conn):
+        entity = wiki.create_wiki_page("u1", project_id, "T", "C", "S")
+        conn.execute(
+            "MATCH (w:WikiEntity) WHERE w.id = $id SET w.is_deleted = true",
+            {"id": entity.id},
+        )
+        assert wiki.list_wiki_pages(project_id) == []
+
+    def test_multiple_pages_returned(self, wiki, project_id):
+        wiki.create_wiki_page("u1", project_id, "T1", "C1", "S1")
+        wiki.create_wiki_page("u1", project_id, "T2", "C2", "S2")
+        assert len(wiki.list_wiki_pages(project_id)) == 2
+
+
+# ── link_to_nodes ─────────────────────────────────────────────────────────────
+
+class TestLinkToNodes:
+    def _make_node(self, conn):
+        """Helper: crea un NodeEntity nel DB per i test cross-layer."""
+        import uuid as _uuid
+        from datetime import datetime, timezone
+        nid = str(_uuid.uuid4())
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        conn.execute(
+            "CREATE (n:NodeEntity {id: $id, user_id: 'u1', type: 'Observation', "
+            "created_at: $ts, is_deleted: false})",
+            {"id": nid, "ts": now},
+        )
+        return nid
+
+    def test_creates_wiki_covers_edges(self, wiki, project_id, conn):
+        node_id = self._make_node(conn)
+        entity = wiki.create_wiki_page("u1", project_id, "T", "C", "S")
+        wiki.link_to_nodes(entity.id, [node_id])
+        result = conn.execute(
+            "MATCH (w:WikiEntity)-[:WIKI_COVERS]->(n:NodeEntity) "
+            "WHERE w.id = $wid RETURN count(*) AS c",
+            {"wid": entity.id},
+        )
+        assert result.get_next()[0] == 1
+
+    def test_idempotent_double_call(self, wiki, project_id, conn):
+        node_id = self._make_node(conn)
+        entity = wiki.create_wiki_page("u1", project_id, "T", "C", "S")
+        wiki.link_to_nodes(entity.id, [node_id])
+        wiki.link_to_nodes(entity.id, [node_id])   # seconda chiamata
+        result = conn.execute(
+            "MATCH (w:WikiEntity)-[:WIKI_COVERS]->(n:NodeEntity) "
+            "WHERE w.id = $wid RETURN count(*) AS c",
+            {"wid": entity.id},
+        )
+        assert result.get_next()[0] == 1
+
+    def test_links_multiple_nodes(self, wiki, project_id, conn):
+        n1 = self._make_node(conn)
+        n2 = self._make_node(conn)
+        entity = wiki.create_wiki_page("u1", project_id, "T", "C", "S")
+        wiki.link_to_nodes(entity.id, [n1, n2])
+        result = conn.execute(
+            "MATCH (w:WikiEntity)-[:WIKI_COVERS]->(n:NodeEntity) "
+            "WHERE w.id = $wid RETURN count(*) AS c",
+            {"wid": entity.id},
+        )
+        assert result.get_next()[0] == 2
+
+    def test_empty_list_is_noop(self, wiki, project_id):
+        entity = wiki.create_wiki_page("u1", project_id, "T", "C", "S")
+        wiki.link_to_nodes(entity.id, [])   # deve completare senza errori

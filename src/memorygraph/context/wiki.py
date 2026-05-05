@@ -104,3 +104,51 @@ class WikiStore:
                 content=row[2], summary=row[3], created_at=row[4],
             ))
         return states
+
+    def list_wiki_pages(
+        self,
+        project_id: str,
+    ) -> list[tuple[WikiEntity, WikiState]]:
+        """WikiPage del progetto con lo stato più recente. Escluse le deleted."""
+        result = self._conn.execute(
+            """
+            MATCH (w:WikiEntity)-[:WIKI_HAS_STATE]->(s:WikiState)
+            WHERE w.project_id = $pid AND w.is_deleted = false
+            RETURN w.id, w.user_id, w.project_id, w.title, w.created_at, w.is_deleted,
+                   s.id, s.version, s.content, s.summary, s.created_at
+            ORDER BY w.id ASC, s.version DESC
+            """,
+            {"pid": project_id},
+        )
+        seen: dict[str, tuple[WikiEntity, WikiState]] = {}
+        while result.has_next():
+            row = result.get_next()
+            wiki_id = row[0]
+            if wiki_id not in seen:
+                entity = WikiEntity(
+                    id=row[0], user_id=row[1], project_id=row[2],
+                    title=row[3], created_at=row[4], is_deleted=row[5],
+                )
+                state = WikiState(
+                    id=row[6], wiki_id=wiki_id, version=row[7],
+                    content=row[8], summary=row[9], created_at=row[10],
+                )
+                seen[wiki_id] = (entity, state)
+        return list(seen.values())
+
+    def link_to_nodes(self, wiki_id: str, node_ids: list[str]) -> None:
+        """Crea archi WIKI_COVERS (WikiEntity → NodeEntity). Idempotente."""
+        for node_id in node_ids:
+            result = self._conn.execute(
+                "MATCH (w:WikiEntity)-[:WIKI_COVERS]->(n:NodeEntity) "
+                "WHERE w.id = $wid AND n.id = $nid RETURN count(*) AS c",
+                {"wid": wiki_id, "nid": node_id},
+            )
+            if result.get_next()[0] > 0:
+                continue
+            self._conn.execute(
+                "MATCH (w:WikiEntity), (n:NodeEntity) "
+                "WHERE w.id = $wid AND n.id = $nid "
+                "CREATE (w)-[:WIKI_COVERS]->(n)",
+                {"wid": wiki_id, "nid": node_id},
+            )
