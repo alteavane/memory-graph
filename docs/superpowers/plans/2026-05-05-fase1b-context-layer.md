@@ -36,7 +36,7 @@
 - Modify: `src/memorygraph/graph/models.py`
 - Modify: `tests/test_graph/test_models.py`
 
-- [ ] **Step 1: Aggiungere test in `tests/test_graph/test_models.py`**
+- [x] **Step 1: Aggiungere test in `tests/test_graph/test_models.py`**
 
 Aggiungi in coda al file:
 
@@ -94,7 +94,7 @@ from memorygraph.graph.models import (
 )
 ```
 
-- [ ] **Step 2: Eseguire il test per verificare che fallisce**
+- [x] **Step 2: Eseguire il test per verificare che fallisce**
 
 ```bash
 uv run pytest tests/test_graph/test_models.py -v -k "project or wiki or document"
@@ -102,7 +102,7 @@ uv run pytest tests/test_graph/test_models.py -v -k "project or wiki or document
 
 Expected: `ImportError: cannot import name 'Project'`
 
-- [ ] **Step 3: Aggiungere i 4 dataclass a `src/memorygraph/graph/models.py`**
+- [x] **Step 3: Aggiungere i 4 dataclass a `src/memorygraph/graph/models.py`**
 
 Aggiungi in coda al file (dopo la classe `Edge`):
 
@@ -159,7 +159,7 @@ class DocumentIndex:
     created_at: datetime
 ```
 
-- [ ] **Step 4: Aggiornare l'import in testa a `test_models.py`**
+- [x] **Step 4: Aggiornare l'import in testa a `test_models.py`**
 
 Sostituisci la riga import esistente con:
 
@@ -170,7 +170,7 @@ from memorygraph.graph.models import (
 )
 ```
 
-- [ ] **Step 5: Eseguire i test**
+- [x] **Step 5: Eseguire i test**
 
 ```bash
 uv run pytest tests/test_graph/test_models.py -v
@@ -178,7 +178,7 @@ uv run pytest tests/test_graph/test_models.py -v
 
 Expected: tutti `PASSED`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/memorygraph/graph/models.py tests/test_graph/test_models.py
@@ -193,14 +193,14 @@ git commit -m "feat: Project, WikiEntity, WikiState, DocumentIndex dataclasses"
 - Create: `src/memorygraph/context/__init__.py` (vuoto per ora)
 - Create: `src/memorygraph/context/schema.py`
 
-- [ ] **Step 1: Creare il package marker**
+- [x] **Step 1: Creare il package marker**
 
 ```bash
 mkdir -p src/memorygraph/context
 touch src/memorygraph/context/__init__.py
 ```
 
-- [ ] **Step 2: Creare `src/memorygraph/context/schema.py`**
+- [x] **Step 2: Creare `src/memorygraph/context/schema.py`**
 
 ```python
 import kuzu
@@ -287,7 +287,7 @@ def init_context_schema(conn: kuzu.Connection) -> None:
                 raise
 ```
 
-- [ ] **Step 3: Verificare che lo schema si crea senza errori**
+- [x] **Step 3: Verificare che lo schema si crea senza errori**
 
 ```bash
 uv run python -c "
@@ -306,7 +306,7 @@ with tempfile.TemporaryDirectory() as d:
 
 Expected: `Context schema OK`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/memorygraph/context/__init__.py src/memorygraph/context/schema.py
@@ -322,14 +322,14 @@ git commit -m "feat: context/schema.py — 4 node tables + 4 rel tables (idempot
 - Create: `tests/test_context/__init__.py`
 - Create: `tests/test_context/test_project.py`
 
-- [ ] **Step 1: Creare `tests/test_context/__init__.py`**
+- [x] **Step 1: Creare `tests/test_context/__init__.py`**
 
 ```bash
 mkdir -p tests/test_context
 touch tests/test_context/__init__.py
 ```
 
-- [ ] **Step 2: Creare `tests/test_context/test_project.py`**
+- [x] **Step 2: Creare `tests/test_context/test_project.py`**
 
 ```python
 from __future__ import annotations
@@ -507,7 +507,7 @@ class TestArchitecturalInvariant:
             assert proj.full_context == ""
 ```
 
-- [ ] **Step 3: Eseguire per verificare che fallisce**
+- [x] **Step 3: Eseguire per verificare che fallisce**
 
 ```bash
 uv run pytest tests/test_context/test_project.py -v
@@ -515,7 +515,7 @@ uv run pytest tests/test_context/test_project.py -v
 
 Expected: `ModuleNotFoundError: No module named 'memorygraph.context.project'`
 
-- [ ] **Step 4: Creare `src/memorygraph/context/project.py`**
+- [x] **Step 4: Creare `src/memorygraph/context/project.py`**
 
 ```python
 from __future__ import annotations
@@ -678,7 +678,7 @@ class ProjectStore:
         return projects
 ```
 
-- [ ] **Step 5: Eseguire i test**
+- [x] **Step 5: Eseguire i test**
 
 ```bash
 uv run pytest tests/test_context/test_project.py -v
@@ -686,7 +686,7 @@ uv run pytest tests/test_context/test_project.py -v
 
 Expected: tutti `PASSED`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/memorygraph/context/project.py tests/test_context/__init__.py tests/test_context/test_project.py
@@ -701,7 +701,7 @@ git commit -m "feat: ProjectStore — CRUD + agent_context guard + architectural
 - Create: `src/memorygraph/context/wiki.py`
 - Create: `tests/test_context/test_wiki.py`
 
-- [ ] **Step 1: Creare `tests/test_context/test_wiki.py`**
+- [x] **Step 1: Creare `tests/test_context/test_wiki.py`**
 
 ```python
 from __future__ import annotations
@@ -805,7 +805,7 @@ class TestGetWikiHistory:
         assert wiki.get_wiki_history("nonexistent") == []
 ```
 
-- [ ] **Step 2: Eseguire per verificare che fallisce**
+- [x] **Step 2: Eseguire per verificare che fallisce**
 
 ```bash
 uv run pytest tests/test_context/test_wiki.py -v
@@ -813,7 +813,7 @@ uv run pytest tests/test_context/test_wiki.py -v
 
 Expected: `ModuleNotFoundError: No module named 'memorygraph.context.wiki'`
 
-- [ ] **Step 3: Creare `src/memorygraph/context/wiki.py`**
+- [x] **Step 3: Creare `src/memorygraph/context/wiki.py`**
 
 ```python
 from __future__ import annotations
@@ -924,7 +924,7 @@ class WikiStore:
         return states
 ```
 
-- [ ] **Step 4: Eseguire i test**
+- [x] **Step 4: Eseguire i test**
 
 ```bash
 uv run pytest tests/test_context/test_wiki.py -v
@@ -932,7 +932,7 @@ uv run pytest tests/test_context/test_wiki.py -v
 
 Expected: tutti `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/memorygraph/context/wiki.py tests/test_context/test_wiki.py
@@ -947,7 +947,7 @@ git commit -m "feat: WikiStore — create_wiki_page, update_wiki_page, get_wiki_
 - Modify: `src/memorygraph/context/wiki.py`
 - Modify: `tests/test_context/test_wiki.py`
 
-- [ ] **Step 1: Aggiungere i test in `tests/test_context/test_wiki.py`**
+- [x] **Step 1: Aggiungere i test in `tests/test_context/test_wiki.py`**
 
 Aggiungi in coda al file (dopo `TestGetWikiHistory`):
 
@@ -1042,7 +1042,7 @@ class TestLinkToNodes:
         wiki.link_to_nodes(entity.id, [])   # deve completare senza errori
 ```
 
-- [ ] **Step 2: Eseguire per verificare che i nuovi test falliscono**
+- [x] **Step 2: Eseguire per verificare che i nuovi test falliscono**
 
 ```bash
 uv run pytest tests/test_context/test_wiki.py::TestListWikiPages tests/test_context/test_wiki.py::TestLinkToNodes -v
@@ -1050,7 +1050,7 @@ uv run pytest tests/test_context/test_wiki.py::TestListWikiPages tests/test_cont
 
 Expected: `AttributeError: 'WikiStore' object has no attribute 'list_wiki_pages'`
 
-- [ ] **Step 3: Aggiungere i metodi a `src/memorygraph/context/wiki.py`**
+- [x] **Step 3: Aggiungere i metodi a `src/memorygraph/context/wiki.py`**
 
 Aggiungi dopo `get_wiki_history`:
 
@@ -1104,7 +1104,7 @@ Aggiungi dopo `get_wiki_history`:
             )
 ```
 
-- [ ] **Step 4: Eseguire tutti i test WikiStore**
+- [x] **Step 4: Eseguire tutti i test WikiStore**
 
 ```bash
 uv run pytest tests/test_context/test_wiki.py -v
@@ -1112,7 +1112,7 @@ uv run pytest tests/test_context/test_wiki.py -v
 
 Expected: tutti `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/memorygraph/context/wiki.py tests/test_context/test_wiki.py
@@ -1127,7 +1127,7 @@ git commit -m "feat: WikiStore — list_wiki_pages, link_to_nodes (idempotente)"
 - Create: `src/memorygraph/context/documents.py`
 - Create: `tests/test_context/test_documents.py`
 
-- [ ] **Step 1: Creare `tests/test_context/test_documents.py`**
+- [x] **Step 1: Creare `tests/test_context/test_documents.py`**
 
 ```python
 from __future__ import annotations
@@ -1268,7 +1268,7 @@ class TestReferenceDocument:
         assert result.get_next()[0] == 1
 ```
 
-- [ ] **Step 2: Eseguire per verificare che fallisce**
+- [x] **Step 2: Eseguire per verificare che fallisce**
 
 ```bash
 uv run pytest tests/test_context/test_documents.py -v
@@ -1276,7 +1276,7 @@ uv run pytest tests/test_context/test_documents.py -v
 
 Expected: `ModuleNotFoundError: No module named 'memorygraph.context.documents'`
 
-- [ ] **Step 3: Creare `src/memorygraph/context/documents.py`**
+- [x] **Step 3: Creare `src/memorygraph/context/documents.py`**
 
 ```python
 from __future__ import annotations
@@ -1388,7 +1388,7 @@ class DocumentStore:
         )
 ```
 
-- [ ] **Step 4: Eseguire i test**
+- [x] **Step 4: Eseguire i test**
 
 ```bash
 uv run pytest tests/test_context/test_documents.py -v
@@ -1396,7 +1396,7 @@ uv run pytest tests/test_context/test_documents.py -v
 
 Expected: tutti `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/memorygraph/context/documents.py tests/test_context/test_documents.py
@@ -1411,7 +1411,7 @@ git commit -m "feat: DocumentStore — add_document, get_document, list_document
 - Modify: `src/memorygraph/context/__init__.py`
 - Create: `tests/test_context/test_context_store.py`
 
-- [ ] **Step 1: Creare `tests/test_context/test_context_store.py`**
+- [x] **Step 1: Creare `tests/test_context/test_context_store.py`**
 
 ```python
 from __future__ import annotations
@@ -1491,7 +1491,7 @@ class TestAttachNode:
         assert result.get_next()[0] == 2
 ```
 
-- [ ] **Step 2: Eseguire per verificare che fallisce**
+- [x] **Step 2: Eseguire per verificare che fallisce**
 
 ```bash
 uv run pytest tests/test_context/test_context_store.py -v
@@ -1499,7 +1499,7 @@ uv run pytest tests/test_context/test_context_store.py -v
 
 Expected: `ImportError` perché `context/__init__.py` è vuoto.
 
-- [ ] **Step 3: Implementare `src/memorygraph/context/__init__.py`**
+- [x] **Step 3: Implementare `src/memorygraph/context/__init__.py`**
 
 ```python
 from __future__ import annotations
@@ -1539,7 +1539,7 @@ class ContextStore:
         )
 ```
 
-- [ ] **Step 4: Eseguire tutti i test del context layer**
+- [x] **Step 4: Eseguire tutti i test del context layer**
 
 ```bash
 uv run pytest tests/test_context/ -v
@@ -1547,7 +1547,7 @@ uv run pytest tests/test_context/ -v
 
 Expected: tutti `PASSED`
 
-- [ ] **Step 5: Eseguire anche i test della Fase 1 per verificare zero regressioni**
+- [x] **Step 5: Eseguire anche i test della Fase 1 per verificare zero regressioni**
 
 ```bash
 uv run pytest tests/test_graph/ -v
@@ -1555,7 +1555,7 @@ uv run pytest tests/test_graph/ -v
 
 Expected: tutti `PASSED` — `GraphStore` non è stato toccato.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/memorygraph/context/__init__.py tests/test_context/test_context_store.py
@@ -1569,7 +1569,7 @@ git commit -m "feat: ContextStore — facade con attach_node (BELONGS_TO cross-l
 **Files:**
 - Modify: `cli/main.py`
 
-- [ ] **Step 1: Aggiungere import e helper in `cli/main.py`**
+- [x] **Step 1: Aggiungere import e helper in `cli/main.py`**
 
 Aggiungi dopo `from memorygraph.graph.store import GraphStore`:
 
@@ -1584,7 +1584,7 @@ def _get_context() -> ContextStore:
     return ContextStore(DB_PATH)
 ```
 
-- [ ] **Step 2: Aggiungere i due comandi in coda a `cli/main.py`** (prima di `if __name__ == "__main__":`)
+- [x] **Step 2: Aggiungere i due comandi in coda a `cli/main.py`** (prima di `if __name__ == "__main__":`)
 
 ```python
 @app.command(name="project-create")
@@ -1617,7 +1617,7 @@ def project_assign(
     )
 ```
 
-- [ ] **Step 3: Smoke test manuale**
+- [x] **Step 3: Smoke test manuale**
 
 ```bash
 # Crea un project
@@ -1652,7 +1652,7 @@ uv run python cli/main.py project-assign \
 
 Expected: `✓ Nodo <id[:8]> assegnato al project <id[:8]>`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add cli/main.py
@@ -1666,7 +1666,7 @@ git commit -m "feat: CLI project-create, project-assign"
 **Files:**
 - Modify: `cli/main.py`
 
-- [ ] **Step 1: Aggiungere i due comandi in coda a `cli/main.py`** (prima di `if __name__ == "__main__":`)
+- [x] **Step 1: Aggiungere i due comandi in coda a `cli/main.py`** (prima di `if __name__ == "__main__":`)
 
 ```python
 @app.command(name="wiki-add")
@@ -1717,7 +1717,7 @@ def doc_add(
         console.print(f"  Autori: {doc.authors}")
 ```
 
-- [ ] **Step 2: Smoke test manuale**
+- [x] **Step 2: Smoke test manuale**
 
 ```bash
 # Crea una WikiPage (con i nodi collegati — usa gli ID dell'esercizio del Task 8)
@@ -1752,7 +1752,7 @@ uv run python cli/main.py doc-add \
 
 Expected: `✓ Documento aggiunto: <id>` con DOI e autori stampati.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add cli/main.py
@@ -1766,7 +1766,7 @@ git commit -m "feat: CLI wiki-add (con --node-ids opzionale), doc-add"
 **Files:**
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Eseguire tutti i test con coverage**
+- [x] **Step 1: Eseguire tutti i test con coverage**
 
 ```bash
 uv run pytest tests/ --cov=src/memorygraph --cov-report=term-missing -v
@@ -1774,7 +1774,7 @@ uv run pytest tests/ --cov=src/memorygraph --cov-report=term-missing -v
 
 Expected: copertura totale >80%. Se sotto, identificare i gap nel report e aggiungere test mirati prima di procedere.
 
-- [ ] **Step 2: Verificare zero regressioni sulla Fase 1**
+- [x] **Step 2: Verificare zero regressioni sulla Fase 1**
 
 ```bash
 uv run pytest tests/test_graph/ -v
@@ -1782,7 +1782,7 @@ uv run pytest tests/test_graph/ -v
 
 Expected: tutti `PASSED` — `GraphStore`, `models`, `schema` della Fase 1 invariati.
 
-- [ ] **Step 3: Aggiornare la roadmap in `CLAUDE.md`**
+- [x] **Step 3: Aggiornare la roadmap in `CLAUDE.md`**
 
 Sostituisci la sezione `### 🔨 Fase 1b — Context Layer (IN CORSO)` con:
 
@@ -1806,7 +1806,7 @@ Aggiorna anche la riga finale del file:
 *Ultima modifica: Maggio 2026 — RFC v0.2 — Fase 1b completa*
 ```
 
-- [ ] **Step 4: Commit finale**
+- [x] **Step 4: Commit finale**
 
 ```bash
 git add CLAUDE.md
