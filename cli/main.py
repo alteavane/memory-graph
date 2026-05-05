@@ -232,5 +232,53 @@ def project_assign(
     )
 
 
+@app.command(name="wiki-add")
+def wiki_add(
+    user_id: str = typer.Option(..., help="ID utente"),
+    project_id: str = typer.Option(..., help="ID del Project a cui appartiene"),
+    title: str = typer.Option(..., help="Titolo della pagina (stabile tra versioni)"),
+    content: str = typer.Option(..., help="Contenuto della pagina"),
+    summary: str = typer.Option(..., help="Cosa descrive questa versione?"),
+    node_ids: str | None = typer.Option(
+        None, help="Nodi da collegare, comma-separated — crea archi documenta"
+    ),
+) -> None:
+    """Crea una nuova WikiPage (v1). Con --node-ids crea anche gli archi documenta."""
+    ctx = _get_context()
+    entity = ctx.wiki.create_wiki_page(user_id, project_id, title, content, summary)
+    if node_ids:
+        ids = [n.strip() for n in node_ids.split(",") if n.strip()]
+        ctx.wiki.link_to_nodes(entity.id, ids)
+        console.print(
+            f"[green]✓[/green] WikiPage creata: [bold]{entity.id}[/bold] "
+            f"— {len(ids)} nod{'o' if len(ids) == 1 else 'i'} collegat{'o' if len(ids) == 1 else 'i'}"
+        )
+    else:
+        console.print(f"[green]✓[/green] WikiPage creata: [bold]{entity.id}[/bold] (v1)")
+    console.print(f"  Titolo: {entity.title}")
+
+
+@app.command(name="doc-add")
+def doc_add(
+    user_id: str = typer.Option(..., help="ID utente"),
+    title: str = typer.Option(..., help="Titolo del documento"),
+    doi: str | None = typer.Option(None, help="DOI (es. 10.1000/xyz123)"),
+    url: str | None = typer.Option(None, help="URL del documento"),
+    authors: str | None = typer.Option(None, help="Autori comma-separated (es. 'Rossi M, Bianchi A')"),
+    pub_date: str | None = typer.Option(None, help="Data pubblicazione YYYY-MM-DD"),
+) -> None:
+    """Aggiunge un documento al DocumentIndex."""
+    ctx = _get_context()
+    doc = ctx.documents.add_document(
+        user_id, title, doi=doi, url=url, authors=authors, pub_date=pub_date
+    )
+    console.print(f"[green]✓[/green] Documento aggiunto: [bold]{doc.id}[/bold]")
+    console.print(f"  Titolo: {doc.title}")
+    if doc.doi:
+        console.print(f"  DOI: {doc.doi}")
+    if doc.authors:
+        console.print(f"  Autori: {doc.authors}")
+
+
 if __name__ == "__main__":
     app()
