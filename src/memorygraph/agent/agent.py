@@ -16,7 +16,7 @@ from memorygraph.agent.extractor import (
 )
 from memorygraph.context.project import ProjectStore
 from memorygraph.context.schema import init_context_schema
-from memorygraph.graph.models import EdgeType, NodeState
+from memorygraph.graph.models import NodeState
 from memorygraph.graph.store import GraphStore
 
 console = Console()

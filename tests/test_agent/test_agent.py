@@ -5,7 +5,7 @@ import pytest
 
 from memorygraph.agent.agent import MemoryAgent
 from memorygraph.agent.extractor import CandidateNode, ProposedNode
-from memorygraph.graph.models import EdgeType, NodeType
+from memorygraph.graph.models import NodeType
 
 
 def _extractor_llm(prompt: str) -> str:
@@ -41,6 +41,22 @@ class TestMemoryAgentExtract:
         result = agent.extract("testo", project_id="proj-999")
         assert result[0].project_id == "proj-999"
 
+    def test_extract_full_context_used_when_project_exists(self, tmp_path):
+        """Verifica che full_context del progetto venga passato al LLM quando il progetto esiste."""
+        captured_prompts = []
+
+        def capturing_llm(prompt: str) -> str:
+            captured_prompts.append(prompt)
+            return '{"nodes": []}'
+
+        agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=capturing_llm)
+        project = agent._project_store.create_project(
+            user_id="u1", title="T", objective="O",
+            summary="summary pubblico", full_context="full context segreto",
+        )
+        agent.extract("testo", project_id=project.id)
+        assert any("full context segreto" in p for p in captured_prompts)
+
 
 class TestMemoryAgentPropose:
     def test_propose_returns_proposed_nodes(self, tmp_path):
@@ -51,7 +67,30 @@ class TestMemoryAgentPropose:
         assert result[0].hint is None
 
     def test_propose_filters_below_threshold(self, tmp_path):
-        low_conf_llm = lambda p: '{"nodes": [{"type": "Hypothesis", "content": "speculazione", "confidence": 0.1, "trigger": "t"}]}'
-        agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=low_conf_llm, min_confidence=0.3)
+        def _low_confidence_llm(p: str) -> str:
+            return '{"nodes": [{"type": "Hypothesis", "content": "speculazione", "confidence": 0.1, "trigger": "t"}]}'
+        agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=_low_confidence_llm, min_confidence=0.3)
         result = agent.propose("testo")
         assert len(result) == 0
+
+    def test_propose_loads_project_nodes(self, tmp_path):
+        """Verifica che _load_project_nodes funzioni con un progetto reale."""
+        db_path = str(tmp_path / "test.kuzu")
+
+        agent = MemoryAgent(db_path, llm=_no_contradiction_llm)
+
+        project = agent._project_store.create_project(
+            user_id="u1", title="T", objective="O", summary="s", full_context="fc"
+        )
+        existing_node = agent._store.create_node(
+            "u1", NodeType.HYPOTHESIS, "nodo esistente", 0.8, "trigger"
+        )
+        agent._store._conn.execute(
+            "MATCH (n:NodeEntity), (p:Project) WHERE n.id = $nid AND p.id = $pid "
+            "CREATE (n)-[:BELONGS_TO]->(p)",
+            {"nid": existing_node.id, "pid": project.id},
+        )
+
+        # propose should load project nodes without error
+        result = agent.propose("Il pH ottimale è 7.4", project_id=project.id)
+        assert len(result) == 1  # one proposed node (filtered+passed through pipeline)
