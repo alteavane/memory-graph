@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+import json
+import logging
+import math
+
+from memorygraph.agent.extractor import (
+    CandidateNode,
+    ContradictionHint,
+    EmbedCallable,
+    LLMCallable,
+)
+from memorygraph.graph.models import NodeState
+
+logger = logging.getLogger(__name__)
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x ** 2 for x in a))
+    norm_b = math.sqrt(sum(x ** 2 for x in b))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def _format_nodes(nodes: list[NodeState]) -> str:
+    return "\n".join(
+        f"- id: {n.node_id} | {n.content} (confidence: {n.confidence:.2f})"
+        for n in nodes
+    )
+
+
+def _call_llm(
+    candidate: CandidateNode,
+    nodes: list[NodeState],
+    llm: LLMCallable,
+) -> ContradictionHint | None:
+    prompt = (
+        "Sei un rilevatore di contraddizioni in un grafo di conoscenza.\n\n"
+        f"Candidato:\n"
+        f"  Tipo: {candidate.type.value}\n"
+        f"  Contenuto: {candidate.content}\n"
+        f"  Confidence: {candidate.confidence:.2f}\n\n"
+        f"Nodi esistenti nel progetto:\n"
+        f"{_format_nodes(nodes)}\n\n"
+        "Il candidato contraddice uno dei nodi esistenti?\n"
+        'Rispondi SOLO con JSON valido:\n'
+        '{"contradiction": true/false, "node_id": "<id del nodo o null>", "reason": "<spiegazione o null>"}'
+    )
+    raw = llm(prompt)
+    cleaned = raw.strip()
+    if cleaned.startswith("```"):
+        lines = [ln for ln in cleaned.split("\n") if not ln.strip().startswith("```")]
+        cleaned = "\n".join(lines).strip()
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        logger.warning("Detector LLM invalid JSON: %s", raw[:200])
+        return None
+
+    if data.get("contradiction") and data.get("node_id"):
+        return ContradictionHint(
+            existing_node_id=data["node_id"],
+            reason=data.get("reason") or "",
+        )
+    return None
+
+
+def detect(
+    candidate: CandidateNode,
+    project_nodes: list[NodeState],
+    llm: LLMCallable,
+    embed: EmbedCallable | None = None,
+    top_k: int = 5,
+) -> ContradictionHint | None:
+    """Rileva se il candidato contraddice nodi esistenti nel progetto.
+
+    Se ``embed`` è fornito, pre-filtra i ``top_k`` nodi più simili al candidato
+    tramite cosine similarity prima di chiamare il LLM. Altrimenti il LLM
+    riceve tutti i nodi del progetto.
+
+    Returns:
+        ContradictionHint se viene rilevata una contraddizione, None altrimenti.
+    """
+    if candidate.project_id is None or not project_nodes:
+        return None
+
+    if embed is None:
+        return _call_llm(candidate, project_nodes, llm)
+
+    candidate_vec = embed(candidate.content)
+    scored: list[tuple[float, NodeState]] = []
+    for node in project_nodes:
+        node_vec = embed(node.content)
+        sim = _cosine_similarity(candidate_vec, node_vec)
+        scored.append((sim, node))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top_nodes = [node for _, node in scored[:top_k]]
+    return _call_llm(candidate, top_nodes, llm)
