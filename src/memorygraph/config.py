@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 _project_root = Path(__file__).parent.parent.parent
 DB_PATH = os.getenv(
     "MEMORYGRAPH_DB_PATH",
