@@ -304,10 +304,13 @@ PatternType = Enum(
 - [x] Architectural invariant test — guardrail su full_context in CI
 - [x] Test copertura >80%
 
-### ⏳ Fase 2 — Memory Agent
-- LLM extractor, quality gate, confidence estimator, contradiction detector
-- Pattern detection: `collapsing`, `recovered`, `consolidating`
-- L'agente accede a `Project.full_context` — gli umani no
+### ✅ Fase 2 — Memory Agent (COMPLETATA)
+- [x] LLM extractor (extractor.py) — CandidateNode, extract()
+- [x] Quality gate (quality.py) — filter_candidates()
+- [x] Contradiction detector (detector.py) — detect() + cosine similarity
+- [x] MemoryAgent (agent.py) — extract(), propose(), run() loop y/n/s/a
+- [x] CLI: agent-extract
+- [x] Test copertura ≥ 80%
 
 ### ⏳ Fase 3 — Auth & Consent Layer
 - SubgraphToken con `project_summary` snapshot
@@ -441,5 +444,5 @@ L'agente usa `full_context` per ricostruire la narrativa completa.
 
 ---
 
-*Ultima modifica: Maggio 2026 — RFC v0.2 — Fase 1b completa*
+*Ultima modifica: Maggio 2026 — RFC v0.2 — Fase 2 completa*
 *Aggiorna questo file a ogni cambio di stato della roadmap.*
