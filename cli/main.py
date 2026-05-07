@@ -11,6 +11,8 @@ from memorygraph.config import DB_PATH
 from memorygraph.graph.models import EdgeType, NodeType
 from memorygraph.graph.store import GraphStore
 from memorygraph.context import ContextStore
+from memorygraph.agent.agent import MemoryAgent
+from memorygraph.agent.extractor import LLMCallable
 
 app = typer.Typer(help="MemoryGraph CLI — graph store personale basato su credenze.")
 console = Console()
@@ -278,6 +280,47 @@ def doc_add(
         console.print(f"  DOI: {doc.doi}")
     if doc.authors:
         console.print(f"  Autori: {doc.authors}")
+
+
+def _make_demo_llm() -> LLMCallable:
+    """LLM demo — ritorna un nodo fisso. Sostituire con un LLM reale in produzione."""
+    def demo_llm(prompt: str) -> str:
+        if "NodeType validi" in prompt:
+            return (
+                '{"nodes": [{"type": "Observation", '
+                '"content": "Testo inserito tramite CLI", '
+                '"confidence": 0.5, '
+                '"trigger": "Inserito via agent-extract"}]}'
+            )
+        return '{"contradiction": false, "node_id": null, "reason": null}'
+    return demo_llm
+
+
+@app.command()
+def agent_extract(
+    user_id: str = typer.Option(..., "--user-id", help="ID utente"),
+    text: str | None = typer.Option(None, "--text", help="Testo da analizzare"),
+    project_id: str | None = typer.Option(None, "--project-id", help="ID progetto (opzionale)"),
+    stdin: bool = typer.Option(False, "--stdin", help="Legge il testo da stdin"),
+) -> None:
+    """Analizza testo libero e propone nodi interattivamente."""
+    import sys as _sys
+    from memorygraph.config import DB_PATH
+
+    if stdin:
+        input_text = _sys.stdin.read().strip()
+    elif text:
+        input_text = text
+    else:
+        console.print("[red]Errore:[/red] Fornire --text oppure --stdin.")
+        raise typer.Exit(1)
+
+    agent = MemoryAgent(db_path=DB_PATH, llm=_make_demo_llm())
+    ids = agent.run(input_text, project_id=project_id, user_id=user_id)
+    if ids:
+        console.print(f"\n[green]✓[/green] Scritti {len(ids)} nodi: {', '.join(i[:8] for i in ids)}")
+    else:
+        console.print("\n[yellow]Nessun nodo approvato.[/yellow]")
 
 
 if __name__ == "__main__":
