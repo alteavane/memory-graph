@@ -59,13 +59,14 @@ class LinkAgent:
         embed: EmbedCallable | None = None,
         min_confidence: float = 0.4,
         max_edges: int = 10,
+        store: GraphStore | None = None,
     ) -> None:
         self._db_path = db_path
         self._llm = llm
         self._embed = embed
         self._min_confidence = min_confidence
         self._max_edges = max_edges
-        self._store = GraphStore(db_path)
+        self._store = store or GraphStore(db_path)
 
     def propose(
         self,

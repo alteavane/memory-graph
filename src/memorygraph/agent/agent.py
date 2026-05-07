@@ -163,7 +163,7 @@ class MemoryAgent:
 
         if approved:
             from memorygraph.agent.link_agent import LinkAgent
-            link_agent = LinkAgent(self._db_path, self._llm, self._embed, self._min_confidence)
+            link_agent = LinkAgent(self._db_path, self._llm, self._embed, self._min_confidence, store=self._store)
             link_agent.run(approved, user_id=user_id, project_id=project_id)
 
         return approved
