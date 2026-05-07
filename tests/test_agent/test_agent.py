@@ -5,7 +5,7 @@ import pytest
 
 from memorygraph.agent.agent import MemoryAgent
 from memorygraph.agent.extractor import CandidateNode, ProposedNode
-from memorygraph.graph.models import NodeType
+from memorygraph.graph.models import EdgeType, NodeType
 
 
 def _extractor_llm(prompt: str) -> str:
@@ -94,3 +94,133 @@ class TestMemoryAgentPropose:
         # propose should load project nodes without error
         result = agent.propose("Il pH ottimale è 7.4", project_id=project.id)
         assert len(result) == 1  # one proposed node (filtered+passed through pipeline)
+
+
+class TestMemoryAgentRunApproval:
+    def test_run_y_writes_node(self, tmp_path):
+        agent = MemoryAgent(
+            str(tmp_path / "test.kuzu"),
+            llm=_no_contradiction_llm,
+            _input_fn=lambda p: "y",
+        )
+        ids = agent.run("Il pH ottimale è 7.4", user_id="u1")
+        assert len(ids) == 1
+        graph = agent._store.get_graph("u1")
+        assert len(graph["nodes"]) == 1
+
+    def test_run_n_does_not_write(self, tmp_path):
+        agent = MemoryAgent(
+            str(tmp_path / "test.kuzu"),
+            llm=_no_contradiction_llm,
+            _input_fn=lambda p: "n",
+        )
+        ids = agent.run("testo", user_id="u1")
+        assert len(ids) == 0
+        graph = agent._store.get_graph("u1")
+        assert len(graph["nodes"]) == 0
+
+    def test_run_s_skips_remaining(self, tmp_path):
+        multi_llm = lambda p: (
+            '{"nodes": ['
+            '{"type": "Hypothesis", "content": "H1", "confidence": 0.7, "trigger": "t"},'
+            '{"type": "Observation", "content": "O1", "confidence": 0.9, "trigger": "t"}'
+            ']}'
+            if "NodeType validi" in p else
+            '{"contradiction": false, "node_id": null, "reason": null}'
+        )
+        responses = iter(["s"])
+        agent = MemoryAgent(
+            str(tmp_path / "test.kuzu"),
+            llm=multi_llm,
+            _input_fn=lambda p: next(responses),
+        )
+        ids = agent.run("testo", user_id="u1")
+        assert len(ids) == 0
+
+    def test_run_a_approves_all_remaining(self, tmp_path):
+        multi_llm = lambda p: (
+            '{"nodes": ['
+            '{"type": "Hypothesis", "content": "H1", "confidence": 0.7, "trigger": "t"},'
+            '{"type": "Observation", "content": "O1", "confidence": 0.9, "trigger": "t"}'
+            ']}'
+            if "NodeType validi" in p else
+            '{"contradiction": false, "node_id": null, "reason": null}'
+        )
+        responses = iter(["a"])
+        agent = MemoryAgent(
+            str(tmp_path / "test.kuzu"),
+            llm=multi_llm,
+            _input_fn=lambda p: next(responses),
+        )
+        ids = agent.run("testo", user_id="u1")
+        assert len(ids) == 2
+
+
+class TestMemoryAgentContradiction:
+    def test_contradiction_hint_y_creates_edge(self, tmp_path):
+        db_path = str(tmp_path / "test.kuzu")
+
+        # Create agent first (initializes full schema)
+        agent = MemoryAgent(db_path, llm=lambda p: '{"nodes": []}', _input_fn=lambda p: "y")
+
+        # Setup: create project and existing node via internal stores
+        project = agent._project_store.create_project(
+            user_id="u1", title="Test", objective="obj",
+            summary="summary", full_context="context",
+        )
+        existing = agent._store.create_node(
+            "u1", NodeType.HYPOTHESIS, "ACE2 non è il recettore primario", 0.8, "t"
+        )
+        agent._store._conn.execute(
+            "MATCH (n:NodeEntity), (p:Project) WHERE n.id = $nid AND p.id = $pid "
+            "CREATE (n)-[:BELONGS_TO]->(p)",
+            {"nid": existing.id, "pid": project.id},
+        )
+
+        # Smart LLM: extracts a node on first call, detects contradiction on second
+        def smart_llm(prompt: str) -> str:
+            if "NodeType validi" in prompt:
+                return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 è il recettore", "confidence": 0.8, "trigger": "paper"}]}'
+            return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "Contraddice diretta"}}'
+
+        agent._llm = smart_llm
+        responses = iter(["y", "y"])  # first y = approve node, second y = create CONTRADDICE edge
+        agent._input_fn = lambda p: next(responses)
+
+        ids = agent.run("testo", project_id=project.id, user_id="u1")
+
+        assert len(ids) == 1
+        graph = agent._store.get_graph("u1")
+        edges = [e for e in graph["edges"] if e.type == EdgeType.CONTRADDICE]
+        assert len(edges) == 1
+        assert edges[0].from_node == ids[0]
+        assert edges[0].to_node == existing.id
+
+    def test_contradiction_hint_n_no_edge(self, tmp_path):
+        db_path = str(tmp_path / "test.kuzu")
+        agent = MemoryAgent(db_path, llm=lambda p: '{"nodes": []}', _input_fn=lambda p: "y")
+
+        project = agent._project_store.create_project(
+            user_id="u1", title="T", objective="o", summary="s", full_context="fc",
+        )
+        existing = agent._store.create_node("u1", NodeType.HYPOTHESIS, "tesi contraria", 0.8, "t")
+        agent._store._conn.execute(
+            "MATCH (n:NodeEntity), (p:Project) WHERE n.id = $nid AND p.id = $pid "
+            "CREATE (n)-[:BELONGS_TO]->(p)",
+            {"nid": existing.id, "pid": project.id},
+        )
+
+        def smart_llm(prompt: str) -> str:
+            if "NodeType validi" in prompt:
+                return '{"nodes": [{"type": "Hypothesis", "content": "nuova tesi", "confidence": 0.8, "trigger": "t"}]}'
+            return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "contraddice"}}'
+
+        agent._llm = smart_llm
+        responses = iter(["y", "n"])  # approve node, refuse CONTRADDICE edge
+        agent._input_fn = lambda p: next(responses)
+
+        ids = agent.run("testo", project_id=project.id, user_id="u1")
+        assert len(ids) == 1
+        graph = agent._store.get_graph("u1")
+        edges = [e for e in graph["edges"] if e.type == EdgeType.CONTRADDICE]
+        assert len(edges) == 0

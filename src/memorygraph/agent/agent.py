@@ -16,7 +16,7 @@ from memorygraph.agent.extractor import (
 )
 from memorygraph.context.project import ProjectStore
 from memorygraph.context.schema import init_context_schema
-from memorygraph.graph.models import NodeState
+from memorygraph.graph.models import EdgeType, NodeState
 from memorygraph.graph.store import GraphStore
 
 console = Console()
@@ -90,6 +90,23 @@ class MemoryAgent:
 
         return proposals
 
+    def _write_node(self, user_id: str, candidate: CandidateNode, project_id: str | None) -> str:
+        node = self._store.create_node(
+            user_id=user_id,
+            type=candidate.type,
+            content=candidate.content,
+            confidence=candidate.confidence,
+            trigger=candidate.trigger,
+        )
+        if project_id:
+            self._store._conn.execute(
+                "MATCH (n:NodeEntity), (p:Project) "
+                "WHERE n.id = $nid AND p.id = $pid "
+                "CREATE (n)-[:BELONGS_TO]->(p)",
+                {"nid": node.id, "pid": project_id},
+            )
+        return node.id
+
     def run(
         self,
         text: str,
@@ -97,4 +114,48 @@ class MemoryAgent:
         user_id: str = "",
     ) -> list[str]:
         """Esegue propose + loop di approvazione CLI → scrive nodi approvati → ritorna node_id[]."""
-        raise NotImplementedError("Implementato nel Task 5")
+        proposals = self.propose(text, project_id)
+        approved: list[str] = []
+        total = len(proposals)
+
+        for i, proposed in enumerate(proposals):
+            c = proposed.candidate
+            console.print(f"\n[bold cyan][{i + 1}/{total}] Nodo candidato:[/bold cyan]")
+            console.print(f"  Tipo:       {c.type.value}")
+            console.print(f"  Contenuto:  {c.content}")
+            console.print(f"  Confidence: {c.confidence:.2f}")
+            console.print(f"  Trigger:    {c.trigger}")
+            if proposed.hint:
+                console.print(
+                    f"  [yellow]⚠ Possibile contraddizione con nodo "
+                    f"{proposed.hint.existing_node_id[:8]}:[/yellow]"
+                )
+                console.print(f'    "{proposed.hint.reason}" (rilevata dall\'agente)')
+
+            response = self._input_fn("Approva questo nodo? [y/n/s/a]: ").strip().lower()
+
+            if response == "n":
+                continue
+            elif response == "s":
+                break
+            elif response in ("y", "a"):
+                node_id = self._write_node(user_id, c, project_id)
+                approved.append(node_id)
+
+                if proposed.hint:
+                    edge_resp = self._input_fn("Creare arco CONTRADDICE? [y/n]: ").strip().lower()
+                    if edge_resp == "y":
+                        self._store.create_edge(
+                            node_id,
+                            proposed.hint.existing_node_id,
+                            EdgeType.CONTRADDICE,
+                            1.0,
+                        )
+
+                if response == "a":
+                    for remaining in proposals[i + 1:]:
+                        rid = self._write_node(user_id, remaining.candidate, project_id)
+                        approved.append(rid)
+                    break
+
+        return approved
