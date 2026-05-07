@@ -257,8 +257,10 @@ def _render_table(proposed: list[ProposedEdge]) -> None:
         )
     console.print(table)
     console.print(
-        "[dim]Comandi: [[n <num>]] deseleziona  [[t <num> <tipo>]] modifica tipo  "
-        "[[c <num> <val>]] modifica confidence  [[y]] approva  [[N]] annulla[/dim]"
+        "Comandi: [n <num>] deseleziona  [t <num> <tipo>] modifica tipo  "
+        "[c <num> <val>] modifica confidence  [y] approva  [N] annulla",
+        markup=False,
+        style="dim",
     )
 
 
