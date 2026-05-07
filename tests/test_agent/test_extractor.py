@@ -82,3 +82,15 @@ class TestExtract:
         )
         result = extract("testo", llm, project_id="proj-1")
         assert result[0].project_id == "proj-1"
+
+    def test_invalid_json_returns_empty(self):
+        llm = _make_llm("not valid json at all")
+        result = extract("testo", llm)
+        assert result == []
+
+    def test_null_confidence_returns_zero(self):
+        llm = _make_llm(
+            '{"nodes": [{"type": "Hypothesis", "content": "H", "confidence": null, "trigger": "t"}]}'
+        )
+        result = extract("testo", llm)
+        assert result[0].confidence == 0.0

@@ -10,6 +10,7 @@ from memorygraph.graph.models import NodeType
 logger = logging.getLogger(__name__)
 
 LLMCallable = Callable[[str], str]
+# Defined here (not in detector.py) to avoid circular imports — detector.py imports from extractor.py
 EmbedCallable = Callable[[str], list[float]]
 
 _NODE_TYPE_VALUES = {nt.value for nt in NodeType}
@@ -47,6 +48,8 @@ Se non trovi nodi significativi, rispondi: {"nodes": []}"""
 
 @dataclass
 class CandidateNode:
+    """Nodo candidato estratto dal testo dal LLM, non ancora filtrato né scritto nel grafo."""
+
     type: NodeType
     content: str
     confidence: float
@@ -56,12 +59,16 @@ class CandidateNode:
 
 @dataclass
 class ContradictionHint:
+    """Segnale di possibile contraddizione rilevato dal detector — non blocca il nodo, lo annota."""
+
     existing_node_id: str
     reason: str
 
 
 @dataclass
 class ProposedNode:
+    """Candidato post-quality-gate con eventuale hint di contraddizione, pronto per il loop CLI."""
+
     candidate: CandidateNode
     hint: ContradictionHint | None = None
 
@@ -109,7 +116,7 @@ def extract(
             logger.warning("Unknown node type skipped: %s", type_str)
             continue
         content = item.get("content", "")
-        confidence = max(0.0, min(1.0, float(item.get("confidence", 0.0))))
+        confidence = max(0.0, min(1.0, float(item.get("confidence") or 0.0)))
         trigger = item.get("trigger", "")
         candidates.append(CandidateNode(
             type=NodeType(type_str),
