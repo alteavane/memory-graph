@@ -239,22 +239,22 @@ def _render_table(proposed: list[ProposedEdge]) -> None:
     table = Table(title=f"Archi candidati rilevati ({len(proposed)})", show_lines=True)
     table.add_column("#", style="dim", width=3)
     table.add_column("✓", width=2)
-    table.add_column("Da", max_width=28)
+    table.add_column("Da", max_width=36)
     table.add_column("Tipo", width=13)
-    table.add_column("A", max_width=28)
+    table.add_column("A", max_width=36)
     table.add_column("Conf", width=5)
-    table.add_column("Motivo", max_width=30)
+    table.add_column("Motivo", max_width=36)
 
     for i, p in enumerate(proposed, 1):
         check = "✓" if p.approved else " "
         table.add_row(
             str(i),
             check,
-            f"[{p.candidate.from_node_id[:8]}] {p.from_content[:50]}",
+            f"[{p.candidate.from_node_id[:8]}] {p.from_content}",
             f"{p.effective_type.value} →",
-            f"[{p.candidate.to_node_id[:8]}] {p.to_content[:50]}",
+            f"[{p.candidate.to_node_id[:8]}] {p.to_content}",
             f"{p.effective_confidence:.2f}",
-            p.candidate.reason[:60],
+            p.candidate.reason,
         )
     console.print(table)
     console.print(
