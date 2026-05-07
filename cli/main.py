@@ -305,7 +305,6 @@ def agent_extract(
 ) -> None:
     """Analizza testo libero e propone nodi interattivamente."""
     import sys as _sys
-    from memorygraph.config import DB_PATH
 
     if stdin:
         input_text = _sys.stdin.read().strip()
