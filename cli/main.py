@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime
 
 import typer
@@ -296,25 +297,26 @@ def _make_demo_llm() -> LLMCallable:
     return demo_llm
 
 
-@app.command()
+@app.command(name="agent-extract")
 def agent_extract(
     user_id: str = typer.Option(..., "--user-id", help="ID utente"),
-    text: str | None = typer.Option(None, "--text", help="Testo da analizzare"),
+    text: str | None = typer.Option(None, "--text", help="Testo da analizzare (ignorato se --from-stdin)"),
     project_id: str | None = typer.Option(None, "--project-id", help="ID progetto (opzionale)"),
-    stdin: bool = typer.Option(False, "--stdin", help="Legge il testo da stdin"),
+    from_stdin: bool = typer.Option(False, "--from-stdin", help="Legge il testo da stdin"),
 ) -> None:
     """Analizza testo libero e propone nodi interattivamente."""
-    import sys as _sys
-
-    if stdin:
-        input_text = _sys.stdin.read().strip()
+    if from_stdin:
+        input_text = sys.stdin.read().strip()
+        if not input_text:
+            console.print("[red]Errore:[/red] Il testo da stdin è vuoto.")
+            raise typer.Exit(1)
     elif text:
         input_text = text
     else:
-        console.print("[red]Errore:[/red] Fornire --text oppure --stdin.")
+        console.print("[red]Errore:[/red] Fornire --text oppure --from-stdin.")
         raise typer.Exit(1)
 
-    agent = MemoryAgent(db_path=DB_PATH, llm=_make_demo_llm())
+    agent = MemoryAgent(db_path=DB_PATH, llm=_make_demo_llm())  # TODO: replace with configured LLM
     ids = agent.run(input_text, project_id=project_id, user_id=user_id)
     if ids:
         console.print(f"\n[green]✓[/green] Scritti {len(ids)} nodi: {', '.join(i[:8] for i in ids)}")
