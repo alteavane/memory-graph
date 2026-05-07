@@ -69,6 +69,10 @@ MemoryAgent.run(text, user_id, project_id)
 - `LinkAgent` non scrive mai senza conferma esplicita
 - Se non vengono approvati nuovi nodi, il link agent non parte (niente da collegare)
 - Il link agent propone archi anche tra nodi pre-esistenti quando contestualizzati dai nuovi
+- **`LinkAgent` non apre mai una connessione Kuzu diretta.** Riceve sempre un `GraphStore`
+  già inizializzato passato dall'esterno (`store=` parameter). Kuzu embedded è single-writer
+  per processo: due istanze `kuzu.Database` sullo stesso path non condividono le scritture.
+  Questa regola vale per tutti i componenti futuri — SubgraphToken, fork engine, merge engine.
 
 -----
 
@@ -392,7 +396,12 @@ Copertura minima: 80%.
 - `LinkAgent` non scrive mai senza `y` esplicito dall’utente
 - Nessun import da `anthropic`, `openai`, o qualsiasi provider LLM in `link_agent.py`
 - Un test per ogni comportamento pubblico significativo
+- **Nessun componente apre `GraphStore(db_path)` internamente.** Il `GraphStore` viene
+  creato una volta nel processo principale e passato esplicitamente a tutti i componenti
+  che ne hanno bisogno. Motivazione: Kuzu embedded è single-writer per processo — due
+  istanze concorrenti sullo stesso path producono scritture invisibili alle connessioni
+  successive. Confermato in produzione durante Fase 2b.
 
 -----
 
-*Ultima modifica: 2026-05-07 — Design bozza — da approvare*
+*Ultima modifica: 2026-05-07 — Fase 2b completata — invariante connessione Kuzu aggiunto*

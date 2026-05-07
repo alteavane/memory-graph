@@ -348,6 +348,10 @@ PatternType = Enum(
 - Includere `Project.full_context` nel SubgraphToken → è PRIVATO, solo per l'agente
 - Includere WikiPage nel SubgraphToken senza selezione esplicita → default è lista vuota
 - Usare riferimento live al Project nel token → sempre snapshot al momento della condivisione
+- **Aprire una connessione Kuzu diretta da un componente secondario** → Kuzu embedded è
+  single-writer per processo. Ogni componente (LinkAgent, SubgraphToken, fork engine, merge
+  engine) riceve un `GraphStore` già inizializzato dall'esterno — mai `GraphStore(db_path)`
+  interno. La connessione vive nel processo principale e viene passata esplicitamente.
 
 ### Convenzioni naming
 - Classi: `PascalCase`
