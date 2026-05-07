@@ -33,6 +33,7 @@ class MemoryAgent:
         min_confidence: float = 0.3,
         _input_fn: Callable[[str], str] | None = None,
     ) -> None:
+        self._db_path = db_path
         self._store = GraphStore(db_path)
         init_context_schema(self._store._conn)
         self._project_store = ProjectStore(self._store._conn)
@@ -159,5 +160,10 @@ class MemoryAgent:
                         rid = self._write_node(user_id, remaining.candidate, project_id)
                         approved.append(rid)
                     break
+
+        if approved:
+            from memorygraph.agent.link_agent import LinkAgent
+            link_agent = LinkAgent(self._db_path, self._llm, self._embed, self._min_confidence)
+            link_agent.run(approved, user_id=user_id, project_id=project_id)
 
         return approved

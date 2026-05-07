@@ -8,6 +8,11 @@ from memorygraph.agent.extractor import CandidateNode, ProposedNode
 from memorygraph.graph.models import EdgeType, NodeType
 
 
+@pytest.fixture
+def db_path(tmp_path):
+    return str(tmp_path / "test.db")
+
+
 def _extractor_llm(prompt: str) -> str:
     """Mock LLM che ritorna un nodo Hypothesis valido."""
     return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 è il recettore", "confidence": 0.7, "trigger": "paper Zhang"}]}'
@@ -231,3 +236,41 @@ class TestMemoryAgentContradiction:
         graph = agent._store.get_graph("u1")
         edges = [e for e in graph["edges"] if e.type == EdgeType.CONTRADDICE]
         assert len(edges) == 0
+
+
+class TestAgentLinkIntegration:
+    def test_run_calls_link_agent_after_nodes(self, db_path, monkeypatch):
+        """MemoryAgent.run() chiama LinkAgent dopo aver scritto i nodi."""
+        import memorygraph.agent.link_agent as la_module
+        called_with = []
+
+        class MockLinkAgent:
+            def __init__(self, *args, **kwargs): pass
+            def run(self, new_node_ids, **kwargs):
+                called_with.extend(new_node_ids)
+                return []
+
+        monkeypatch.setattr(la_module, "LinkAgent", MockLinkAgent)
+
+        mock_llm = lambda p: '{"nodes": [{"type": "Hypothesis", "content": "test", "confidence": 0.7, "trigger": "t"}]}'
+        agent = MemoryAgent(db_path, llm=mock_llm, _input_fn=lambda _: "y")
+        written = agent.run("testo di test", user_id="u1")
+        assert len(called_with) == len(written)
+
+    def test_run_skips_link_agent_if_no_nodes_written(self, db_path, monkeypatch):
+        """Se zero nodi approvati, LinkAgent.run() non viene chiamato."""
+        import memorygraph.agent.link_agent as la_module
+        link_called = []
+
+        class MockLinkAgent:
+            def __init__(self, *args, **kwargs): pass
+            def run(self, *args, **kwargs):
+                link_called.append(True)
+                return []
+
+        monkeypatch.setattr(la_module, "LinkAgent", MockLinkAgent)
+
+        mock_llm = lambda p: '{"nodes": [{"type": "Hypothesis", "content": "test", "confidence": 0.7, "trigger": "t"}]}'
+        agent = MemoryAgent(db_path, llm=mock_llm, _input_fn=lambda _: "n")  # rifiuta tutti
+        agent.run("testo di test", user_id="u1")
+        assert link_called == []
