@@ -96,6 +96,13 @@ class TestMemoryAgentPropose:
         assert len(result) == 1  # one proposed node (filtered+passed through pipeline)
 
 
+class TestMemoryAgentRunValidation:
+    def test_run_raises_if_user_id_none(self, tmp_path):
+        agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=_no_contradiction_llm)
+        with pytest.raises(ValueError, match="user_id"):
+            agent.run("testo", user_id=None)
+
+
 class TestMemoryAgentRunApproval:
     def test_run_y_writes_node(self, tmp_path):
         agent = MemoryAgent(
