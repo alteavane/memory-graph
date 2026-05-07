@@ -111,9 +111,11 @@ class MemoryAgent:
         self,
         text: str,
         project_id: str | None = None,
-        user_id: str = "",
+        user_id: str | None = None,
     ) -> list[str]:
         """Esegue propose + loop di approvazione CLI → scrive nodi approvati → ritorna node_id[]."""
+        if user_id is None:
+            raise ValueError("user_id è obbligatorio")
         proposals = self.propose(text, project_id)
         approved: list[str] = []
         total = len(proposals)
