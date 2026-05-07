@@ -13,7 +13,7 @@ from memorygraph.graph.models import EdgeType, NodeType
 from memorygraph.graph.store import GraphStore
 from memorygraph.context import ContextStore
 from memorygraph.agent.agent import MemoryAgent
-from memorygraph.agent.extractor import LLMCallable
+from memorygraph.llm import make_llm
 
 app = typer.Typer(help="MemoryGraph CLI — graph store personale basato su credenze.")
 console = Console()
@@ -283,20 +283,6 @@ def doc_add(
         console.print(f"  Autori: {doc.authors}")
 
 
-def _make_demo_llm() -> LLMCallable:
-    """LLM demo — ritorna un nodo fisso. Sostituire con un LLM reale in produzione."""
-    def demo_llm(prompt: str) -> str:
-        if "NodeType validi" in prompt:
-            return (
-                '{"nodes": [{"type": "Observation", '
-                '"content": "Testo inserito tramite CLI", '
-                '"confidence": 0.5, '
-                '"trigger": "Inserito via agent-extract"}]}'
-            )
-        return '{"contradiction": false, "node_id": null, "reason": null}'
-    return demo_llm
-
-
 @app.command(name="agent-extract")
 def agent_extract(
     user_id: str = typer.Option(..., "--user-id", help="ID utente"),
@@ -316,7 +302,7 @@ def agent_extract(
         console.print("[red]Errore:[/red] Fornire --text oppure --from-stdin.")
         raise typer.Exit(1)
 
-    agent = MemoryAgent(db_path=DB_PATH, llm=_make_demo_llm())  # TODO: replace with configured LLM
+    agent = MemoryAgent(db_path=DB_PATH, llm=make_llm())
     ids = agent.run(input_text, project_id=project_id, user_id=user_id)
     if ids:
         console.print(f"\n[green]✓[/green] Scritti {len(ids)} nodi: {', '.join(i[:8] for i in ids)}")

@@ -8,6 +8,10 @@ dependencies = [
     "rich>=13.0.0",
 ]
 
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40.0"]
+openai = ["openai>=1.0.0"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
