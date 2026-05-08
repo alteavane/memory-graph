@@ -300,6 +300,8 @@ Aree in cui il design è esplicitamente aperto:
 Apri una issue. Forka la repo. Rompi il design.
 **L'obiettivo non è il consenso — è il sistema migliore possibile.**
 
+Tutti i contributor devono firmare il Contributor License Agreement prima che la pull request venga accettata.
+
 ---
 
 ## La convinzione alla base di questo progetto
@@ -318,4 +320,4 @@ Facendo sì che il lavoro che già fanno lasci una traccia permanente e condivis
 
 ---
 
-*RFC v0.1 — Maggio 2026 — Licenza MIT*
+*RFC v0.1 — Maggio 2026 — AGPL-3.0*

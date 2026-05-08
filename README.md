@@ -300,6 +300,8 @@ Areas where the design is explicitly open:
 Open an issue. Fork the repo. Break the design.
 **The goal is not consensus — it's the best possible system.**
 
+All contributors must sign the Contributor License Agreement before any pull request can be merged.
+
 ---
 
 ## The belief behind this project
@@ -318,4 +320,4 @@ By making the work they already do leave a permanent, shareable trace.
 
 ---
 
-*RFC v0.1 — May 2026 — MIT License*
+*RFC v0.1 — May 2026 — AGPL-3.0*
