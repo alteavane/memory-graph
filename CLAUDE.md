@@ -312,6 +312,14 @@ PatternType = Enum(
 - [x] CLI: agent-extract
 - [x] Test copertura ≥ 80%
 
+### ✅ Fase 2b — Link Agent (COMPLETATA)
+- [x] LinkAgent (link_agent.py) — CandidateEdge, ProposedEdge, propose(), run()
+- [x] Quality gate archi: confidence, self-loop, node non in grafo, type invalido, duplicati
+- [x] Tabella Rich interattiva: n/t/c/y/N
+- [x] Integrazione in MemoryAgent.run() — lazy import, attivato solo se nodi scritti
+- [x] GraphStore condiviso — evita doppia connessione Kuzu
+- [x] Test copertura ≥ 80% (link_agent.py 88%, totale 94%)
+
 ### ⏳ Fase 3 — Auth & Consent Layer
 - SubgraphToken con `project_summary` snapshot
 - `wiki_page_ids` selection UI
@@ -340,6 +348,10 @@ PatternType = Enum(
 - Includere `Project.full_context` nel SubgraphToken → è PRIVATO, solo per l'agente
 - Includere WikiPage nel SubgraphToken senza selezione esplicita → default è lista vuota
 - Usare riferimento live al Project nel token → sempre snapshot al momento della condivisione
+- **Aprire una connessione Kuzu diretta da un componente secondario** → Kuzu embedded è
+  single-writer per processo. Ogni componente (LinkAgent, SubgraphToken, fork engine, merge
+  engine) riceve un `GraphStore` già inizializzato dall'esterno — mai `GraphStore(db_path)`
+  interno. La connessione vive nel processo principale e viene passata esplicitamente.
 
 ### Convenzioni naming
 - Classi: `PascalCase`
@@ -444,5 +456,5 @@ L'agente usa `full_context` per ricostruire la narrativa completa.
 
 ---
 
-*Ultima modifica: Maggio 2026 — RFC v0.2 — Fase 2 completa*
+*Ultima modifica: Maggio 2026 — RFC v0.2 — Fase 2b completa*
 *Aggiorna questo file a ogni cambio di stato della roadmap.*
