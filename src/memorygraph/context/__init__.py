@@ -1,3 +1,5 @@
+# Copyright (C) 2026 AlteaVane
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Context Layer — Project, Wiki, DocumentIndex."""
 
 from __future__ import annotations
