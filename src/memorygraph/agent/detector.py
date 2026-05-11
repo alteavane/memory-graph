@@ -39,16 +39,16 @@ def _call_llm(
     llm: LLMCallable,
 ) -> ContradictionHint | None:
     prompt = (
-        "Sei un rilevatore di contraddizioni in un grafo di conoscenza.\n\n"
-        f"Candidato:\n"
-        f"  Tipo: {candidate.type.value}\n"
-        f"  Contenuto: {candidate.content}\n"
+        "You are a contradiction detector in a knowledge graph.\n\n"
+        f"Candidate:\n"
+        f"  Type: {candidate.type.value}\n"
+        f"  Content: {candidate.content}\n"
         f"  Confidence: {candidate.confidence:.2f}\n\n"
-        f"Nodi esistenti nel progetto:\n"
+        f"Existing nodes in the project:\n"
         f"{_format_nodes(nodes)}\n\n"
-        "Il candidato contraddice uno dei nodi esistenti?\n"
-        'Rispondi SOLO con JSON valido:\n'
-        '{"contradiction": true/false, "node_id": "<id del nodo o null>", "reason": "<spiegazione o null>"}'
+        "Does the candidate contradict any of the existing nodes?\n"
+        'Reply ONLY with valid JSON:\n'
+        '{"contradiction": true/false, "node_id": "<node id or null>", "reason": "<explanation or null>"}'
     )
     raw = llm(prompt)
     cleaned = raw.strip()

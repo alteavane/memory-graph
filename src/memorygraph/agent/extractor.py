@@ -18,34 +18,34 @@ EmbedCallable = Callable[[str], list[float]]
 _NODE_TYPE_VALUES = {nt.value for nt in NodeType}
 
 _ROLE_INSTRUCTIONS = """\
-Sei un estrattore di credenze da testo scientifico.
+You are a belief extractor from scientific text.
 
-NodeType validi: Observation, Hypothesis, Conclusion, DeadEnd, OpenQuestion, Paper, Experiment, MethodDecision
+Valid NodeTypes: Observation, Hypothesis, Conclusion, DeadEnd, OpenQuestion, Paper, Experiment, MethodDecision
 
-Scegli il tipo più specifico:
-- Observation    → fatto empirico osservato direttamente
-- Hypothesis     → ipotesi da verificare, anche se il testo usa "forse", "potrebbe"
-- Conclusion     → validata, alta certezza
-- DeadEnd        → fallimento, strada chiusa, falsificazione
-- OpenQuestion   → domanda senza risposta ancora
-- Paper          → citazione di fonte esterna, articolo, dataset
-- Experiment     → descrizione di un esperimento con metodo/risultato
-- MethodDecision → scelta metodologica con ragionamento
+Choose the most specific type:
+- Observation    → empirical fact observed directly
+- Hypothesis     → hypothesis to be verified, even if the text uses "perhaps", "might"
+- Conclusion     → validated, high certainty
+- DeadEnd        → failure, closed path, falsification
+- OpenQuestion   → question without an answer yet
+- Paper          → citation of external source, article, dataset
+- Experiment     → description of an experiment with method/result
+- MethodDecision → methodological choice with explicit reasoning
 
-Se il testo esprime incertezza esplicita → Hypothesis o OpenQuestion.
-Se descrive un fallimento → DeadEnd.
-Se cita una fonte esterna → Paper.
+If the text expresses explicit uncertainty → Hypothesis or OpenQuestion.
+If it describes a failure → DeadEnd.
+If it cites an external source → Paper.
 
-Scala confidence:
-0.9+    → fatto empirico osservato direttamente
-0.6–0.9 → ipotesi con evidenza parziale
-0.3–0.6 → speculazione o evidenza debole
-< 0.3   → dubbio esplicito — includi solo se il contenuto è significativo"""
+Confidence scale:
+0.9+    → empirical fact observed directly
+0.6–0.9 → hypothesis with partial evidence
+0.3–0.6 → speculation or weak evidence
+< 0.3   → explicit doubt — include only if the content is significant"""
 
 _OUTPUT_FORMAT = """\
-Rispondi SOLO con JSON valido in questo formato:
+Reply ONLY with valid JSON in this format:
 {"nodes": [{"type": "...", "content": "...", "confidence": 0.0, "trigger": "..."}]}
-Se non trovi nodi significativi, rispondi: {"nodes": []}"""
+If no significant nodes are found, reply: {"nodes": []}"""
 
 
 @dataclass
@@ -78,8 +78,8 @@ class ProposedNode:
 def _build_prompt(text: str, project_context: str | None) -> str:
     parts = [_ROLE_INSTRUCTIONS]
     if project_context:
-        parts.append(f"Contesto del progetto:\n{project_context}")
-    parts.append(f"Testo:\n{text}")
+        parts.append(f"Project context:\n{project_context}")
+    parts.append(f"Text:\n{text}")
     parts.append(_OUTPUT_FORMAT)
     return "\n\n".join(parts)
 

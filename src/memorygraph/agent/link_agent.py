@@ -94,7 +94,7 @@ class LinkAgent:
         existing_block = "\n".join(
             f'[id: {nid}] ({node_contents[nid]["type"]}, conf {node_contents[nid]["confidence"]:.2f}) "{node_contents[nid]["content"][:80]}"'
             for nid in existing_ids
-        ) or "(nessun nodo esistente oltre ai nuovi)"
+        ) or "(no existing nodes besides the new ones)"
 
         prompt = _build_prompt(new_block, existing_block, self._max_edges)
         raw = self._llm(prompt)
@@ -137,35 +137,35 @@ class LinkAgent:
 
 
 def _build_prompt(new_block: str, existing_block: str, max_edges: int) -> str:
-    return f"""Sei un analista di grafi di conoscenza scientifica.
-Hai un insieme di nodi appena aggiunti e un insieme di nodi esistenti nel grafo.
-Il tuo compito è identificare le relazioni semantiche significative tra di essi.
+    return f"""You are an analyst of scientific knowledge graphs.
+You have a set of newly added nodes and a set of existing nodes in the graph.
+Your task is to identify significant semantic relationships between them.
 
-EdgeType validi:
-- supporta       → A fornisce evidenza a favore di B
-- contraddice    → A è in tensione o conflitto con B
-- deriva_da      → A è conseguenza logica o deduzione di B
-- falsifica      → A è evidenza empirica che invalida B
-- apre_domanda   → A genera una domanda aperta rappresentata da B
-- risolve        → A risponde o chiude la domanda aperta B
+Valid EdgeTypes:
+- supporta       → A provides evidence in favor of B
+- contraddice    → A is in tension or conflict with B
+- deriva_da      → A is a logical consequence or deduction of B
+- falsifica      → A is empirical evidence that invalidates B
+- apre_domanda   → A generates an open question represented by B
+- risolve        → A answers or closes the open question B
 
-Scala confidence:
-0.9+  → relazione evidente e diretta
-0.6–0.9 → relazione plausibile con motivazione chiara
-0.4–0.6 → relazione possibile, vale la pena segnalare
-< 0.4 → non proporre
+Confidence scale:
+0.9+    → evident and direct relationship
+0.6–0.9 → plausible relationship with clear motivation
+0.4–0.6 → possible relationship, worth signaling
+< 0.4   → do not propose
 
-Nodi appena aggiunti:
+Newly added nodes:
 {new_block}
 
-Nodi esistenti nel grafo:
+Existing nodes in the graph:
 {existing_block}
 
-Proponi SOLO archi semanticamente significativi. Non più di {max_edges} in totale.
+Propose ONLY semantically significant edges. No more than {max_edges} in total.
 
-Rispondi SOLO con JSON valido:
-{{"edges": [{{"from": "<node_id>", "to": "<node_id>", "type": "<EdgeType>", "confidence": 0.0, "reason": "<spiegazione breve>"}}]}}
-Se non trovi archi: {{"edges": []}}"""
+Reply ONLY with valid JSON:
+{{"edges": [{{"from": "<node_id>", "to": "<node_id>", "type": "<EdgeType>", "confidence": 0.0, "reason": "<brief explanation>"}}]}}
+If no edges found: {{"edges": []}}"""
 
 
 def _parse_candidates(
