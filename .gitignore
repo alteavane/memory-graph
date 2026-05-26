@@ -13,4 +13,5 @@ htmlcov/
 .claude/
 AGENTS.md
 CLAUDE-v0.1.md
-docs/**/.DS_Store
+openspec/
+docs/
