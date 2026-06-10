@@ -50,7 +50,7 @@ If no significant nodes are found, reply: {"nodes": []}"""
 
 @dataclass
 class CandidateNode:
-    """Nodo candidato estratto dal testo dal LLM, non ancora filtrato né scritto nel grafo."""
+    """Candidate node extracted from text by the LLM, not yet filtered or written to the graph."""
 
     type: NodeType
     content: str
@@ -61,7 +61,7 @@ class CandidateNode:
 
 @dataclass
 class ContradictionHint:
-    """Segnale di possibile contraddizione rilevato dal detector — non blocca il nodo, lo annota."""
+    """Signal of a possible contradiction detected by the detector — does not block the node, annotates it."""
 
     existing_node_id: str
     reason: str
@@ -69,7 +69,7 @@ class ContradictionHint:
 
 @dataclass
 class ProposedNode:
-    """Candidato post-quality-gate con eventuale hint di contraddizione, pronto per il loop CLI."""
+    """Post-quality-gate candidate with an optional contradiction hint, ready for the CLI loop."""
 
     candidate: CandidateNode
     hint: ContradictionHint | None = None
@@ -99,7 +99,7 @@ def extract(
     project_context: str | None = None,
     project_id: str | None = None,
 ) -> list[CandidateNode]:
-    """Chiama LLM con prompt strutturato, parsifica JSON, ritorna candidati."""
+    """Call the LLM with a structured prompt, parse the JSON, return candidates."""
     prompt = _build_prompt(text, project_context)
     raw = llm(prompt)
     cleaned = _strip_markdown(raw)

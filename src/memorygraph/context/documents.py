@@ -11,7 +11,7 @@ from memorygraph.graph.models import DocumentIndex
 
 
 class DocumentStore:
-    """Gestisce DocumentIndex: ancore al mondo esterno con metadati bibliografici."""
+    """Manages DocumentIndex: anchors to the external world with bibliographic metadata."""
 
     def __init__(self, conn: kuzu.Connection) -> None:
         self._conn = conn
@@ -26,7 +26,7 @@ class DocumentStore:
         authors: str | None = None,
         pub_date: str | None = None,
     ) -> DocumentIndex:
-        """Crea un nuovo DocumentIndex."""
+        """Create a new DocumentIndex."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         doc_id = str(uuid.uuid4())
         self._conn.execute(
@@ -51,7 +51,7 @@ class DocumentStore:
         )
 
     def get_document(self, doc_id: str) -> DocumentIndex | None:
-        """Ritorna il DocumentIndex o None se non esiste."""
+        """Returns the DocumentIndex or None if it does not exist."""
         result = self._conn.execute(
             """
             MATCH (d:DocumentIndex) WHERE d.id = $did
@@ -71,7 +71,7 @@ class DocumentStore:
         )
 
     def list_documents(self, user_id: str) -> list[DocumentIndex]:
-        """Lista tutti i documenti dell'utente."""
+        """List all of the user's documents."""
         result = self._conn.execute(
             """
             MATCH (d:DocumentIndex) WHERE d.user_id = $uid
@@ -93,7 +93,7 @@ class DocumentStore:
         return docs
 
     def reference_document(self, node_id: str, doc_id: str) -> None:
-        """Crea arco REFERENCES_DOC (NodeEntity → DocumentIndex). Idempotente."""
+        """Create a REFERENCES_DOC edge (NodeEntity → DocumentIndex). Idempotent."""
         result = self._conn.execute(
             "MATCH (n:NodeEntity)-[:REFERENCES_DOC]->(d:DocumentIndex) "
             "WHERE n.id = $nid AND d.id = $did RETURN count(*) AS c",

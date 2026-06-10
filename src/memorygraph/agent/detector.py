@@ -76,14 +76,14 @@ def detect(
     embed: EmbedCallable | None = None,
     top_k: int = 5,
 ) -> ContradictionHint | None:
-    """Rileva se il candidato contraddice nodi esistenti nel progetto.
+    """Detect whether the candidate contradicts existing nodes in the project.
 
-    Se ``embed`` è fornito, pre-filtra i ``top_k`` nodi più simili al candidato
-    tramite cosine similarity prima di chiamare il LLM. Altrimenti il LLM
-    riceve tutti i nodi del progetto.
+    If ``embed`` is provided, pre-filter the ``top_k`` nodes most similar to the
+    candidate via cosine similarity before calling the LLM. Otherwise the LLM
+    receives all of the project's nodes.
 
     Returns:
-        ContradictionHint se viene rilevata una contraddizione, None altrimenti.
+        ContradictionHint if a contradiction is detected, None otherwise.
     """
     if candidate.project_id is None or not project_nodes:
         return None

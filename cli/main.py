@@ -228,7 +228,7 @@ def project_assign(
     node_id: str = typer.Option(..., help="Epistemic node ID"),
     project_id: str = typer.Option(..., help="Project ID"),
 ) -> None:
-    """Assign a node to a Project (creates an appartiene_a edge)."""
+    """Assign a node to a Project (creates a belongs_to edge)."""
     ctx = _get_context()
     ctx.attach_node(node_id, project_id)
     console.print(
@@ -245,21 +245,21 @@ def wiki_add(
     content: str = typer.Option(..., help="Page content"),
     summary: str = typer.Option(..., help="What does this version describe?"),
     node_ids: str | None = typer.Option(
-        None, help="Nodes to link, comma-separated - creates documenta edges"
+        None, help="Nodes to link, comma-separated - creates documents edges"
     ),
 ) -> None:
-    """Create a new WikiPage (v1). With --node-ids it also creates documenta edges."""
+    """Create a new WikiPage (v1). With --node-ids it also creates documents edges."""
     ctx = _get_context()
     entity = ctx.wiki.create_wiki_page(user_id, project_id, title, content, summary)
     if node_ids:
         ids = [n.strip() for n in node_ids.split(",") if n.strip()]
         ctx.wiki.link_to_nodes(entity.id, ids)
         console.print(
-            f"[green]✓[/green] WikiPage creata: [bold]{entity.id}[/bold] "
+            f"[green]✓[/green] WikiPage created: [bold]{entity.id}[/bold] "
             f"- {len(ids)} node{'' if len(ids) == 1 else 's'} linked"
         )
     else:
-        console.print(f"[green]✓[/green] WikiPage creata: [bold]{entity.id}[/bold] (v1)")
+        console.print(f"[green]✓[/green] WikiPage created: [bold]{entity.id}[/bold] (v1)")
     console.print(f"  Title: {entity.title}")
 
 

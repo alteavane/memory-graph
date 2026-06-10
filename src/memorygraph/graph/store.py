@@ -13,7 +13,7 @@ from memorygraph.graph.schema import init_schema
 
 
 class GraphStore:
-    """Unico punto di accesso al graph store Kuzu. Thread-unsafe — una istanza per processo."""
+    """Single access point to the Kuzu graph store. Thread-unsafe — one instance per process."""
 
     def __init__(self, db_path: str) -> None:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -29,7 +29,7 @@ class GraphStore:
         confidence: float,
         trigger: str,
     ) -> NodeEntity:
-        """Crea un NodeEntity con il primo NodeState (version=1)."""
+        """Create a NodeEntity with its first NodeState (version=1)."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         entity_id = str(uuid.uuid4())
         state_id = str(uuid.uuid4())
@@ -56,7 +56,7 @@ class GraphStore:
         confidence: float,
         trigger: str,
     ) -> NodeState:
-        """Crea un nuovo NodeState (version = max + 1). Non modifica mai i precedenti."""
+        """Create a new NodeState (version = max + 1). Never modifies previous ones."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         state_id = str(uuid.uuid4())
 
@@ -84,9 +84,9 @@ class GraphStore:
 
     def get_graph(self, user_id: str) -> dict:
         """
-        Snapshot attuale del grafo utente.
-        Ritorna: {"nodes": list[tuple[NodeEntity, NodeState]], "edges": list[Edge]}
-        Solo nodi non deleted con il loro stato più recente. Solo archi non invalidati.
+        Current snapshot of the user's graph.
+        Returns: {"nodes": list[tuple[NodeEntity, NodeState]], "edges": list[Edge]}
+        Only non-deleted nodes with their most recent state. Only non-invalidated edges.
         """
         node_result = self._conn.execute(
             """
@@ -142,7 +142,7 @@ class GraphStore:
         type: EdgeType,
         confidence: float,
     ) -> Edge:
-        """Crea una relazione CONNECTS tra due NodeEntity."""
+        """Create a CONNECTS relationship between two NodeEntity nodes."""
         edge_id = str(uuid.uuid4())
         self._conn.execute(
             """
@@ -156,8 +156,8 @@ class GraphStore:
 
     def invalidate_edge(self, edge_id: str) -> Edge:
         """
-        Invalida un arco settando invalidated_at = now(). Operazione atomica (singola query Kuzu).
-        Mai cancellazione permanente — la storia è immutabile.
+        Invalidate an edge by setting invalidated_at = now(). Atomic operation (single Kuzu query).
+        Never a permanent deletion — history is immutable.
         """
         now = datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -181,7 +181,7 @@ class GraphStore:
         )
 
     def get_node_history(self, node_id: str) -> list[NodeState]:
-        """Tutti i NodeState del nodo in ordine cronologico (version ASC)."""
+        """All NodeState records for the node in chronological order (version ASC)."""
         result = self._conn.execute(
             """
             MATCH (e:NodeEntity)-[:HAS_STATE]->(s:NodeState)

@@ -23,7 +23,7 @@ def conn(tmp_path):
 @pytest.fixture
 def project_id(conn):
     return ProjectStore(conn).create_project(
-        "u1", "Progetto Test", "Obiettivo", "Summary", "FC"
+        "u1", "Test Project", "Objective", "Summary", "FC"
     ).id
 
 
@@ -36,20 +36,20 @@ def wiki(conn):
 
 class TestCreateWikiPage:
     def test_returns_wiki_entity(self, wiki, project_id):
-        entity = wiki.create_wiki_page("u1", project_id, "Titolo", "Contenuto", "Prima versione")
+        entity = wiki.create_wiki_page("u1", project_id, "Title", "Content", "First version")
         assert entity.id is not None
-        assert entity.title == "Titolo"
+        assert entity.title == "Title"
         assert entity.project_id == project_id
         assert entity.user_id == "u1"
         assert entity.is_deleted is False
 
     def test_creates_first_state_version_1(self, wiki, project_id):
-        entity = wiki.create_wiki_page("u1", project_id, "T", "Contenuto v1", "Creazione")
+        entity = wiki.create_wiki_page("u1", project_id, "T", "Content v1", "Creation")
         history = wiki.get_wiki_history(entity.id)
         assert len(history) == 1
         assert history[0].version == 1
-        assert history[0].content == "Contenuto v1"
-        assert history[0].summary == "Creazione"
+        assert history[0].content == "Content v1"
+        assert history[0].summary == "Creation"
         assert history[0].wiki_id == entity.id
 
     def test_each_page_has_unique_id(self, wiki, project_id):
@@ -63,10 +63,10 @@ class TestCreateWikiPage:
 class TestUpdateWikiPage:
     def test_increments_version(self, wiki, project_id):
         entity = wiki.create_wiki_page("u1", project_id, "T", "v1", "s1")
-        state = wiki.update_wiki_page(entity.id, "v2", "Aggiunto paragrafo")
+        state = wiki.update_wiki_page(entity.id, "v2", "Added paragraph")
         assert state.version == 2
         assert state.content == "v2"
-        assert state.summary == "Aggiunto paragrafo"
+        assert state.summary == "Added paragraph"
 
     def test_preserves_previous_states(self, wiki, project_id):
         entity = wiki.create_wiki_page("u1", project_id, "T", "v1", "s1")
@@ -114,10 +114,10 @@ class TestListWikiPages:
         assert state.content == "v2"
 
     def test_returns_entity_and_state_pair(self, wiki, project_id):
-        entity = wiki.create_wiki_page("u1", project_id, "Titolo", "C", "S")
+        entity = wiki.create_wiki_page("u1", project_id, "Title", "C", "S")
         pages = wiki.list_wiki_pages(project_id)
         ent, state = pages[0]
-        assert ent.title == "Titolo"
+        assert ent.title == "Title"
         assert ent.id == entity.id
         assert state.version == 1
 
@@ -139,7 +139,7 @@ class TestListWikiPages:
 
 class TestLinkToNodes:
     def _make_node(self, conn):
-        """Helper: crea un NodeEntity nel DB per i test cross-layer."""
+        """Helper: create a NodeEntity in the DB for cross-layer tests."""
         import uuid as _uuid
         from datetime import datetime, timezone
         nid = str(_uuid.uuid4())
@@ -166,7 +166,7 @@ class TestLinkToNodes:
         node_id = self._make_node(conn)
         entity = wiki.create_wiki_page("u1", project_id, "T", "C", "S")
         wiki.link_to_nodes(entity.id, [node_id])
-        wiki.link_to_nodes(entity.id, [node_id])   # seconda chiamata
+        wiki.link_to_nodes(entity.id, [node_id])   # second call
         result = conn.execute(
             "MATCH (w:WikiEntity)-[:WIKI_COVERS]->(n:NodeEntity) "
             "WHERE w.id = $wid RETURN count(*) AS c",
@@ -188,4 +188,4 @@ class TestLinkToNodes:
 
     def test_empty_list_is_noop(self, wiki, project_id):
         entity = wiki.create_wiki_page("u1", project_id, "T", "C", "S")
-        wiki.link_to_nodes(entity.id, [])   # deve completare senza errori
+        wiki.link_to_nodes(entity.id, [])   # must complete without errors

@@ -76,7 +76,7 @@ _CONTEXT_SCHEMA_STATEMENTS = [
 
 
 def init_context_schema(conn: kuzu.Connection) -> None:
-    """Crea le tabelle del context layer. Idempotente. Deve essere chiamata dopo init_schema()."""
+    """Create the context layer tables. Idempotent. Must be called after init_schema()."""
     for stmt in _CONTEXT_SCHEMA_STATEMENTS:
         try:
             conn.execute(stmt)

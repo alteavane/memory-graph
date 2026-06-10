@@ -11,7 +11,7 @@ from memorygraph.graph.models import Project
 
 
 class ProjectStore:
-    """Gestisce Project: creazione, lettura con visibilità controllata, aggiornamento."""
+    """Manages Project: creation, reading with controlled visibility, updating."""
 
     def __init__(self, conn: kuzu.Connection) -> None:
         self._conn = conn
@@ -24,7 +24,7 @@ class ProjectStore:
         summary: str,
         full_context: str,
     ) -> Project:
-        """Crea un nuovo Project. Ritorna il Project completo."""
+        """Create a new Project. Returns the complete Project."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         project_id = str(uuid.uuid4())
         self._conn.execute(
@@ -54,9 +54,9 @@ class ProjectStore:
         agent_context: bool = False,
     ) -> Project | None:
         """
-        Ritorna il Project.
-        agent_context=False (default): full_context = "" — default sicuro.
-        agent_context=True: full_context incluso — solo per il Memory Agent.
+        Returns the Project.
+        agent_context=False (default): full_context = "" — safe default.
+        agent_context=True: full_context included — only for the Memory Agent.
         """
         result = self._conn.execute(
             """
@@ -78,8 +78,8 @@ class ProjectStore:
 
     def get_project_summary(self, project_id: str) -> dict | None:
         """
-        Ritorna solo i campi pubblici: {id, title, objective, summary}.
-        Ritorna dict (non Project) — il tipo rende esplicito che full_context non c'è.
+        Returns only the public fields: {id, title, objective, summary}.
+        Returns a dict (not a Project) — the type makes it explicit that full_context is absent.
         """
         result = self._conn.execute(
             """
@@ -102,7 +102,7 @@ class ProjectStore:
         summary: str | None = None,
         full_context: str | None = None,
     ) -> Project:
-        """Aggiorna i campi specificati. Ritorna Project completo (uso interno)."""
+        """Update the specified fields. Returns the complete Project (internal use)."""
         existing = self.get_project(project_id, agent_context=True)
         if existing is None:
             raise ValueError(f"Project {project_id} not found")
@@ -136,8 +136,8 @@ class ProjectStore:
         agent_context: bool = False,
     ) -> list[Project]:
         """
-        Lista tutti i Project dell'utente.
-        agent_context=False (default): full_context = "" in ogni Project.
+        List all of the user's Projects.
+        agent_context=False (default): full_context = "" in every Project.
         """
         result = self._conn.execute(
             """

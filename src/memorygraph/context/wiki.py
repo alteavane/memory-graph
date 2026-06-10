@@ -11,7 +11,7 @@ from memorygraph.graph.models import WikiEntity, WikiState
 
 
 class WikiStore:
-    """Gestisce WikiPage: creazione, versionamento, link a nodi epistemici."""
+    """Manages WikiPage: creation, versioning, links to epistemic nodes."""
 
     def __init__(self, conn: kuzu.Connection) -> None:
         self._conn = conn
@@ -24,7 +24,7 @@ class WikiStore:
         content: str,
         summary: str,
     ) -> WikiEntity:
-        """Crea WikiEntity + primo WikiState (version=1)."""
+        """Create a WikiEntity + first WikiState (version=1)."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         wiki_id = str(uuid.uuid4())
         state_id = str(uuid.uuid4())
@@ -56,7 +56,7 @@ class WikiStore:
         )
 
     def update_wiki_page(self, wiki_id: str, content: str, summary: str) -> WikiState:
-        """Crea un nuovo WikiState (version = max + 1). Non modifica i precedenti."""
+        """Create a new WikiState (version = max + 1). Does not modify previous ones."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         state_id = str(uuid.uuid4())
         result = self._conn.execute(
@@ -88,7 +88,7 @@ class WikiStore:
         )
 
     def get_wiki_history(self, wiki_id: str) -> list[WikiState]:
-        """Tutti i WikiState del nodo in ordine cronologico (version ASC)."""
+        """All WikiState records for the node in chronological order (version ASC)."""
         result = self._conn.execute(
             """
             MATCH (w:WikiEntity)-[:WIKI_HAS_STATE]->(s:WikiState)
@@ -111,7 +111,7 @@ class WikiStore:
         self,
         project_id: str,
     ) -> list[tuple[WikiEntity, WikiState]]:
-        """WikiPage del progetto con lo stato più recente. Escluse le deleted."""
+        """Project WikiPages with their most recent state. Deleted ones excluded."""
         result = self._conn.execute(
             """
             MATCH (w:WikiEntity)-[:WIKI_HAS_STATE]->(s:WikiState)
@@ -139,7 +139,7 @@ class WikiStore:
         return list(seen.values())
 
     def link_to_nodes(self, wiki_id: str, node_ids: list[str]) -> None:
-        """Crea archi WIKI_COVERS (WikiEntity → NodeEntity). Idempotente."""
+        """Create WIKI_COVERS edges (WikiEntity → NodeEntity). Idempotent."""
         for node_id in node_ids:
             result = self._conn.execute(
                 "MATCH (w:WikiEntity)-[:WIKI_COVERS]->(n:NodeEntity) "

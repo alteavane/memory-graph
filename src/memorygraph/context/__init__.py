@@ -16,21 +16,21 @@ from memorygraph.context.documents import DocumentStore
 
 
 class ContextStore:
-    """Facade del context layer. Unico punto d'ingresso per CLI e agente."""
+    """Context layer facade. Single entry point for the CLI and the agent."""
 
     def __init__(self, db_path: str) -> None:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._db_path = db_path
         self._db = kuzu.Database(db_path)
         self._conn = kuzu.Connection(self._db)
-        init_schema(self._conn)           # NodeEntity deve esistere prima di BELONGS_TO
+        init_schema(self._conn)           # NodeEntity must exist before BELONGS_TO
         init_context_schema(self._conn)
         self.projects = ProjectStore(self._conn)
         self.wiki = WikiStore(self._conn)
         self.documents = DocumentStore(self._conn)
 
     def attach_node(self, node_id: str, project_id: str) -> None:
-        """Crea arco BELONGS_TO (NodeEntity → Project). Unica operazione cross-layer."""
+        """Create a BELONGS_TO edge (NodeEntity → Project). The only cross-layer operation."""
         self._conn.execute(
             "MATCH (n:NodeEntity), (p:Project) "
             "WHERE n.id = $nid AND p.id = $pid "

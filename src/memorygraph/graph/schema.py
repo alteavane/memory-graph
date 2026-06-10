@@ -42,7 +42,7 @@ _SCHEMA_STATEMENTS = [
 
 
 def init_schema(conn: kuzu.Connection) -> None:
-    """Crea tutte le tabelle Kuzu se non esistono. Idempotente."""
+    """Create all Kuzu tables if they don't exist. Idempotent."""
     for stmt in _SCHEMA_STATEMENTS:
         try:
             conn.execute(stmt)

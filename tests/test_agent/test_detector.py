@@ -12,14 +12,14 @@ from memorygraph.graph.models import NodeState, NodeType
 def _make_candidate(project_id: str | None = "proj-1") -> CandidateNode:
     return CandidateNode(
         type=NodeType.HYPOTHESIS,
-        content="ACE2 è il recettore principale",
+        content="ACE2 is the primary receptor",
         confidence=0.8,
         trigger="paper",
         project_id=project_id,
     )
 
 
-def _make_state(node_id: str = "node-existing", content: str = "ACE2 non è il recettore") -> NodeState:
+def _make_state(node_id: str = "node-existing", content: str = "ACE2 is not the receptor") -> NodeState:
     return NodeState(
         id="state-1",
         node_id=node_id,
@@ -43,11 +43,11 @@ class TestDetect:
         assert result is None
 
     def test_llm_detects_contradiction(self):
-        llm = lambda p: '{"contradiction": true, "node_id": "node-existing", "reason": "Contraddice diretta"}'
+        llm = lambda p: '{"contradiction": true, "node_id": "node-existing", "reason": "Direct contradiction"}'
         result = detect(_make_candidate(), [_make_state()], llm)
         assert result is not None
         assert result.existing_node_id == "node-existing"
-        assert result.reason == "Contraddice diretta"
+        assert result.reason == "Direct contradiction"
 
     def test_llm_no_contradiction_returns_none(self):
         llm = lambda p: '{"contradiction": false, "node_id": null, "reason": null}'
@@ -63,9 +63,9 @@ class TestDetect:
 
         # 3 nodes, top_k=2 — LLM prompt should contain at most 2 node ids
         states = [
-            _make_state(node_id="n1", content="testo 1"),
-            _make_state(node_id="n2", content="testo 2"),
-            _make_state(node_id="n3", content="testo 3"),
+            _make_state(node_id="n1", content="text 1"),
+            _make_state(node_id="n2", content="text 2"),
+            _make_state(node_id="n3", content="text 3"),
         ]
         embed = lambda t: [1.0, 0.0]   # same vector for all — ties resolved by list order
 

@@ -9,7 +9,7 @@ from memorygraph.agent.quality import filter_candidates
 from memorygraph.graph.models import NodeType
 
 
-def _make(content: str = "contenuto", confidence: float = 0.7) -> CandidateNode:
+def _make(content: str = "content", confidence: float = 0.7) -> CandidateNode:
     return CandidateNode(
         type=NodeType.HYPOTHESIS, content=content, confidence=confidence, trigger="t"
     )

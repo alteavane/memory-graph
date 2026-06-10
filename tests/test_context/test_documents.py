@@ -28,7 +28,7 @@ def docs(conn):
 
 
 def _make_node(conn):
-    """Helper: crea un NodeEntity nel DB per i test cross-layer."""
+    """Helper: create a NodeEntity in the DB for cross-layer tests."""
     nid = str(uuid.uuid4())
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     conn.execute(
@@ -43,10 +43,10 @@ def _make_node(conn):
 
 class TestAddDocument:
     def test_returns_document_with_required_fields(self, docs):
-        d = docs.add_document("u1", "Paper sul pH")
+        d = docs.add_document("u1", "Paper on pH")
         assert d.id is not None
         assert d.user_id == "u1"
-        assert d.title == "Paper sul pH"
+        assert d.title == "Paper on pH"
         assert d.doi is None
         assert d.url is None
         assert d.authors is None
@@ -54,7 +54,7 @@ class TestAddDocument:
 
     def test_returns_document_with_all_fields(self, docs):
         d = docs.add_document(
-            "u1", "Paper completo",
+            "u1", "Complete paper",
             doi="10.1000/xyz123",
             url="https://example.com/paper",
             authors="Rossi M, Bianchi A",
@@ -82,7 +82,7 @@ class TestGetDocument:
         assert result.doi == "10.1/x"
 
     def test_optional_fields_round_trip_as_none(self, docs):
-        d = docs.add_document("u1", "Paper senza metadati")
+        d = docs.add_document("u1", "Paper without metadata")
         result = docs.get_document(d.id)
         assert result.doi is None
         assert result.url is None
@@ -129,7 +129,7 @@ class TestReferenceDocument:
         node_id = _make_node(conn)
         d = docs.add_document("u1", "Paper")
         docs.reference_document(node_id, d.id)
-        docs.reference_document(node_id, d.id)   # seconda chiamata
+        docs.reference_document(node_id, d.id)   # second call
         result = conn.execute(
             "MATCH (n:NodeEntity)-[:REFERENCES_DOC]->(d:DocumentIndex) "
             "WHERE n.id = $nid RETURN count(*) AS c",

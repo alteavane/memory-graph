@@ -30,11 +30,11 @@ def store(conn):
 
 class TestCreateProject:
     def test_returns_project_with_all_fields(self, store):
-        p = store.create_project("u1", "Titolo", "Obiettivo", "Summary", "FullCtx")
+        p = store.create_project("u1", "Title", "Objective", "Summary", "FullCtx")
         assert p.id is not None
         assert p.user_id == "u1"
-        assert p.title == "Titolo"
-        assert p.objective == "Obiettivo"
+        assert p.title == "Title"
+        assert p.objective == "Objective"
         assert p.summary == "Summary"
         assert p.full_context == "FullCtx"
 
@@ -67,9 +67,9 @@ class TestGetProject:
         assert result.full_context == "private"
 
     def test_public_fields_always_present(self, store):
-        p = store.create_project("u1", "Titolo", "Obiettivo", "Summary pub", "FC")
+        p = store.create_project("u1", "Title", "Objective", "Summary pub", "FC")
         result = store.get_project(p.id)
-        assert result.title == "Titolo"
+        assert result.title == "Title"
         assert result.summary == "Summary pub"
 
 
@@ -77,19 +77,19 @@ class TestGetProject:
 
 class TestGetProjectSummary:
     def test_returns_dict_with_public_fields(self, store):
-        p = store.create_project("u1", "Titolo", "Obiettivo", "Summary", "private")
+        p = store.create_project("u1", "Title", "Objective", "Summary", "private")
         s = store.get_project_summary(p.id)
         assert s is not None
         assert s["id"] == p.id
-        assert s["title"] == "Titolo"
-        assert s["objective"] == "Obiettivo"
+        assert s["title"] == "Title"
+        assert s["objective"] == "Objective"
         assert s["summary"] == "Summary"
 
     def test_full_context_not_in_dict(self, store):
-        p = store.create_project("u1", "T", "O", "S", "DATI_PRIVATI")
+        p = store.create_project("u1", "T", "O", "S", "PRIVATE_DATA")
         s = store.get_project_summary(p.id)
         assert "full_context" not in s
-        assert "DATI_PRIVATI" not in str(s)
+        assert "PRIVATE_DATA" not in str(s)
 
     def test_returns_none_for_missing(self, store):
         assert store.get_project_summary("nonexistent") is None
@@ -102,13 +102,13 @@ class TestUpdateProject:
         p = store.create_project("u1", "Old", "ObjOld", "S", "FC")
         updated = store.update_project(p.id, title="New")
         assert updated.title == "New"
-        assert updated.objective == "ObjOld"   # invariato
-        assert updated.summary == "S"          # invariato
+        assert updated.objective == "ObjOld"   # unchanged
+        assert updated.summary == "S"          # unchanged
 
     def test_updated_at_changes(self, store):
         p = store.create_project("u1", "T", "O", "S", "FC")
         time.sleep(0.01)
-        updated = store.update_project(p.id, summary="Nuova summary")
+        updated = store.update_project(p.id, summary="New summary")
         assert updated.updated_at >= p.updated_at
 
     def test_raises_for_missing_project(self, store):
@@ -155,21 +155,21 @@ class TestListProjects:
 class TestArchitecturalInvariant:
     def test_full_context_never_in_public_output(self, store):
         """
-        Guardrail architetturale: full_context NON deve mai comparire
-        nell'output pubblico di ProjectStore per default.
-        Se questo test rompe, qualcuno ha esposto full_context per sbaglio.
+        Architectural guardrail: full_context must NEVER appear
+        in ProjectStore public output by default.
+        If this test breaks, someone has exposed full_context by mistake.
         """
-        p = store.create_project("u1", "T", "O", "S", "DATI_SEGRETI")
+        p = store.create_project("u1", "T", "O", "S", "SECRET_DATA")
 
-        # get_project senza agent_context
+        # get_project without agent_context
         result = store.get_project(p.id)
         assert result.full_context == ""
 
         # get_project_summary
         summary = store.get_project_summary(p.id)
         assert "full_context" not in summary
-        assert "DATI_SEGRETI" not in str(summary)
+        assert "SECRET_DATA" not in str(summary)
 
-        # list_projects senza agent_context
+        # list_projects without agent_context
         for proj in store.list_projects("u1"):
             assert proj.full_context == ""

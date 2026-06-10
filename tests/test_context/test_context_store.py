@@ -19,7 +19,7 @@ def ctx(tmp_path):
 
 
 def _make_node(ctx):
-    """Helper: crea un NodeEntity tramite connessione condivisa di ContextStore."""
+    """Helper: create a NodeEntity through ContextStore's shared connection."""
     nid = str(uuid.uuid4())
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     ctx._conn.execute(
@@ -41,8 +41,8 @@ class TestContextStoreInit:
         assert isinstance(ctx.documents, DocumentStore)
 
     def test_sub_stores_share_connection(self, ctx):
-        # Verifica che i dati scritti da un sub-store siano visibili agli altri
-        # creando un Project e verificando che sia leggibile dalla stessa connessione
+        # Verify that data written by one sub-store is visible to the others
+        # by creating a Project and checking it is readable from the same connection
         p = ctx.projects.create_project("u1", "T", "O", "S", "FC")
         result = ctx._conn.execute(
             "MATCH (p:Project) WHERE p.id = $pid RETURN p.title",
