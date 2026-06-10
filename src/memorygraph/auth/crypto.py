@@ -6,8 +6,10 @@ from __future__ import annotations
 import base64
 import json
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
+    Ed25519PublicKey,
 )
 
 
@@ -29,3 +31,24 @@ def canonical_bytes(payload: dict) -> bytes:
     return json.dumps(
         payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     ).encode("utf-8")
+
+
+def sign(payload: dict, private_key_b64: str) -> str:
+    """Sign the canonical form of ``payload`` with an Ed25519 private key."""
+    private = Ed25519PrivateKey.from_private_bytes(
+        base64.b64decode(private_key_b64)
+    )
+    signature = private.sign(canonical_bytes(payload))
+    return base64.b64encode(signature).decode("ascii")
+
+
+def verify(payload: dict, signature_b64: str, public_key_b64: str) -> bool:
+    """Return True iff ``signature_b64`` is a valid signature of ``payload``."""
+    public = Ed25519PublicKey.from_public_bytes(
+        base64.b64decode(public_key_b64)
+    )
+    try:
+        public.verify(base64.b64decode(signature_b64), canonical_bytes(payload))
+        return True
+    except (InvalidSignature, ValueError):
+        return False
