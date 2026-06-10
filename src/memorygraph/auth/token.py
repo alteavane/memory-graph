@@ -11,6 +11,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 
+from memorygraph.auth.crypto import verify
 from memorygraph.graph.models import SubgraphToken
 
 
@@ -59,3 +60,20 @@ def deserialize(data: str) -> SubgraphToken:
         signature=d["signature"],
         created_at=datetime.fromisoformat(d["created_at"]),
     )
+
+
+def verify_token(
+    token: SubgraphToken, issuer_public_key: str, *, now: datetime
+) -> VerifyResult:
+    """Verify expiry then Ed25519 signature with the issuer's public key. Never raises.
+
+    A token observed exactly at its expiry instant (now == expires_at) is accepted.
+    """
+    try:
+        if now > token.expires_at:
+            return VerifyResult(ok=False, reason="expired")
+        if not verify(_token_payload(token), token.signature, issuer_public_key):
+            return VerifyResult(ok=False, reason="bad_signature")
+    except (ValueError, TypeError):
+        return VerifyResult(ok=False, reason="bad_signature")
+    return VerifyResult(ok=True, reason=None)
