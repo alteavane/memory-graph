@@ -1,8 +1,8 @@
 # Copyright (C) 2026 AlteaVane
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Helper della demo VHS: stampa l'UUID di un nodo/progetto leggendolo dal DB.
+"""VHS demo helper: prints the UUID of a node/project by reading it from the DB.
 
-Usato dal tape per risolvere gli ID a runtime (evita UUID hardcodati):
+Used by the tape to resolve IDs at runtime (avoids hardcoded UUIDs):
     PID=$(uv run python demo/ids.py project)
     HYP=$(uv run python demo/ids.py hyp)
 """

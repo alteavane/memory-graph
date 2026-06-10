@@ -1,10 +1,10 @@
 # MemoryGraph — VHS demo
-# L agente cattura il pensiero da testo libero, rileva contraddizioni,
-# propone archi; l ipotesi falsificata collassa ma nulla viene cancellato.
+# The agent captures thinking from free text, detects contradictions,
+# proposes edges; the falsified hypothesis collapses but nothing is deleted.
 #
 #   bash demo/make_demo.sh   →   demo.gif
 #
-# Deterministico: usa il provider LLM 'demo' (replay, nessuna rete).
+# Deterministic: uses the 'demo' LLM provider (replay, no network).
 
 Output demo.gif
 Require uv
@@ -17,7 +17,7 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 25ms
 
-# --- setup nascosto: DB pulito, provider demo, progetto creato, PID catturato ---
+# --- hidden setup: clean DB, demo provider, project created, PID captured ---
 Hide
 Type "shopt -s interactive_comments"
 Enter
@@ -38,7 +38,7 @@ Type "# MemoryGraph captures the thinking process from free text"
 Enter
 Sleep 1s
 
-# 2) Osservazione empirica
+# 2) Empirical observation
 Type "# An empirical observation becomes an Observation node"
 Enter
 Sleep 700ms
@@ -49,7 +49,7 @@ Type "a"
 Enter
 Sleep 2s
 
-# 3) Ipotesi che contraddice l'osservazione
+# 3) Hypothesis that contradicts the observation
 Type "# A conflicting hypothesis is flagged as a contradiction"
 Enter
 Sleep 700ms
@@ -66,7 +66,7 @@ Type "y"
 Enter
 Sleep 2500ms
 
-# 4) Dead end — dato di prima classe
+# 4) Dead end — first-class data
 Type "# A dead end is first-class data, not a failure to hide"
 Enter
 Sleep 700ms
@@ -77,8 +77,8 @@ Type "a"
 Enter
 Sleep 2s
 
-# 5) La scoperta che falsifica l'ipotesi
-Type "# New evidence: the agent proposes a falsifica edge"
+# 5) The discovery that falsifies the hypothesis
+Type "# New evidence: the agent proposes a falsifies edge"
 Enter
 Sleep 700ms
 Type 'uv run python cli/main.py agent-extract --user-id marco --project-id $PID --text "Hoffmann et al. 2020: TMPRSS2 primes spike at the cell surface and bypasses the endosome - pH is not the limiting factor."'
@@ -91,7 +91,7 @@ Type "y"
 Enter
 Sleep 2500ms
 
-# 6) Snapshot del grafo
+# 6) Graph snapshot
 Type "# Graph snapshot: typed nodes and epistemic edges"
 Enter
 Sleep 600ms
@@ -99,7 +99,7 @@ Type "uv run python cli/main.py show --user-id marco"
 Enter
 Sleep 4500ms
 
-# 7) L ipotesi falsificata collassa — ma la storia resta
+# 7) The falsified hypothesis collapses — but the history remains
 Type "# Falsified: the hypothesis confidence collapses"
 Enter
 Sleep 700ms

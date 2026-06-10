@@ -1,53 +1,53 @@
-# Demo VHS
+# VHS Demo
 
-Genera `demo.gif` (nella root del repo) in modo **deterministico e riproducibile**.
-Mostra il Memory Agent che cattura il pensiero da testo libero — senza dipendere
-da un LLM live durante la registrazione.
+Generates `demo.gif` (in the repo root) in a **deterministic and reproducible** way.
+It shows the Memory Agent capturing thought from free-form text — without depending
+on a live LLM during recording.
 
-## Uso
+## Usage
 
 ```bash
-brew install vhs        # una volta — tira dentro anche ttyd e ffmpeg
-bash demo/make_demo.sh  # render VHS → ottimizzazione → demo.gif (~3 MB)
+brew install vhs        # once — also pulls in ttyd and ffmpeg
+bash demo/make_demo.sh  # VHS render → optimization → demo.gif (~3 MB)
 ```
 
-## Cosa mostra (scenario UC-01, ricercatore "marco")
+## What it shows (UC-01 scenario, researcher "marco")
 
-1. **Observation** — l'agente estrae un nodo da un'osservazione empirica (Lan et al.).
-2. **Hypothesis + contraddizione** — l'ipotesi pH contraddice l'osservazione:
-   l'agente la segnala e crea l'arco `contraddice`; propone anche `apre_domanda`.
-3. **DeadEnd** — un vicolo cieco, dato di prima classe.
-4. **falsifica** — la scoperta TMPRSS2; l'agente propone l'arco `falsifica`.
-5. **show** — snapshot del grafo (5 nodi, 3 archi).
-6. **update + history** — l'ipotesi falsificata collassa (0.60 → 0.15) e la
-   `history` mostra la traiettoria completa: nulla viene mai cancellato.
+1. **Observation** — the agent extracts a node from an empirical observation (Lan et al.).
+2. **Hypothesis + contradiction** — the pH hypothesis contradicts the observation:
+   the agent flags it and creates the `contradicts` edge; it also proposes `opens_question`.
+3. **DeadEnd** — a dead end, a first-class datum.
+4. **falsifies** — the TMPRSS2 discovery; the agent proposes the `falsifies` edge.
+5. **show** — graph snapshot (5 nodes, 3 edges).
+6. **update + history** — the falsified hypothesis collapses (0.60 → 0.15) and the
+   `history` shows the full trajectory: nothing is ever deleted.
 
-## Come resta deterministico
+## How it stays deterministic
 
-`agent-extract` è interattivo e guidato dall'LLM. Per un video ripetibile usiamo
-il provider **`demo`** (`MEMORYGRAPH_LLM_PROVIDER=demo`, in `llm/providers.py`):
-un LLM di *replay* fixtures-based che restituisce istantaneamente i nodi,
-le contraddizioni e gli archi dello scenario. Risolve gli UUID reali leggendoli
-dal prompt stesso, quindi il flusso è identico ad ogni run anche se gli ID cambiano.
-I prompt interattivi restano veri: è VHS a digitare le risposte `a`/`y`.
+`agent-extract` is interactive and LLM-driven. For a repeatable video we use
+the **`demo`** provider (`MEMORYGRAPH_LLM_PROVIDER=demo`, in `llm/providers.py`):
+a fixtures-based *replay* LLM that instantly returns the nodes,
+contradictions, and edges of the scenario. It resolves the real UUIDs by reading them
+from the prompt itself, so the flow is identical on every run even when the IDs change.
+The interactive prompts stay real: it is VHS that types the `a`/`y` answers.
 
-## File
+## Files
 
-| File | Versionato | Ruolo |
+| File | Versioned | Role |
 |---|---|---|
-| `demo.tape` | ✅ | script VHS self-contained (setup nascosto + flusso visibile) |
-| `ids.py` | ✅ | helper: stampa l'UUID di progetto/ipotesi (risolto a runtime nel tape) |
-| `make_demo.sh` | ✅ | orchestratore: render VHS + ottimizzazione GIF |
-| `memorygraph-video-script.md` | ✅ | script narrativo di riferimento (i comandi mostrati) |
-| `../demo.gif` | ✅ | output da incorporare nel README |
-| `../data/demo.kuzu` | ❌ | DB della demo (rigenerato dal tape ad ogni run) |
+| `demo.tape` | ✅ | self-contained VHS script (hidden setup + visible flow) |
+| `ids.py` | ✅ | helper: prints the project/hypothesis UUID (resolved at runtime in the tape) |
+| `make_demo.sh` | ✅ | orchestrator: VHS render + GIF optimization |
+| `memorygraph-video-script.md` | ✅ | reference narrative script (the commands shown) |
+| `../demo.gif` | ✅ | output to embed in the README |
+| `../data/demo.kuzu` | ❌ | demo DB (regenerated from the tape on every run) |
 
-## Personalizzare
+## Customizing
 
-- **Aspetto** (tema, font, dimensioni, velocità): le righe `Set …` in `demo.tape`.
-- **Tempi e narrazione**: i blocchi `Type`/`Sleep` in `demo.tape`. I commenti
-  evitano l'apostrofo `'` (romperebbe il parsing della shell nel terminale VHS).
-- **Scenario** (nodi, contraddizioni, archi): le fixtures `_DEMO_*` in
-  `src/memorygraph/llm/providers.py`. Se cambi un testo `--text` nel tape,
-  assicurati che contenga ancora il *needle* riconosciuto dalle fixtures.
-- **Peso del GIF**: i parametri `fps`/`scale`/`max_colors` in `make_demo.sh`.
+- **Appearance** (theme, font, size, speed): the `Set …` lines in `demo.tape`.
+- **Timing and narration**: the `Type`/`Sleep` blocks in `demo.tape`. The comments
+  avoid the apostrophe `'` (it would break shell parsing in the VHS terminal).
+- **Scenario** (nodes, contradictions, edges): the `_DEMO_*` fixtures in
+  `src/memorygraph/llm/providers.py`. If you change a `--text` string in the tape,
+  make sure it still contains the *needle* recognized by the fixtures.
+- **GIF weight**: the `fps`/`scale`/`max_colors` parameters in `make_demo.sh`.

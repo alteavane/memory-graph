@@ -148,8 +148,8 @@ NodeState:
 Edge:
   from_node       UUID
   to_node         UUID
-  type            ENUM        # supporta | contraddice | deriva_da
-                              # falsifica | apre_domanda | risolve
+  type            ENUM        # supports | contradicts | derives_from
+                              # falsifies | opens_question | resolves
   confidence      FLOAT       # edges also carry certainty
   invalidated_at  TIMESTAMP   # null if still valid — never delete
 

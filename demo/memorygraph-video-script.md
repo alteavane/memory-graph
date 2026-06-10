@@ -1,10 +1,10 @@
-# MemoryGraph — Script Comandi per il Video Demo
+# MemoryGraph — Command Script for the Demo Video
 
-Scenario: ricercatore "marco" studia il meccanismo di entrata di SARS-CoV-2.
+Scenario: researcher "marco" studies the SARS-CoV-2 entry mechanism.
 
 ---
 
-## 1. Crea il progetto
+## 1. Create the project
 
 ```bash
 uv run python cli/main.py project-create \
@@ -15,16 +15,16 @@ uv run python cli/main.py project-create \
   --full-context "Research on SARS-CoV-2 cell entry focusing on RBD-ACE2 binding, pH effects, TMPRSS2 role, and potential antiviral targets."
 ```
 
-**Risposta attesa:**
+**Expected response:**
 ```
-✓ Project creato: 054d6269-dea9-4413-b149-b1ae43d1e25b
-  Titolo: SARS-CoV-2 entry mechanism
+✓ Project created: 054d6269-dea9-4413-b149-b1ae43d1e25b
+  Title: SARS-CoV-2 entry mechanism
   Summary: Study of spike-ACE2 interaction and viral entry pathway
 ```
 
 ---
 
-## 2. Inserisce la prima osservazione (Lan et al.)
+## 2. Enters the first observation (Lan et al.)
 
 ```bash
 uv run python cli/main.py agent-extract \
@@ -33,26 +33,26 @@ uv run python cli/main.py agent-extract \
   --text "Lan et al. 2020 (Nature): crystal structure shows that the spike RBD domain binds ACE2 with 10-20x higher affinity than SARS-CoV-1, with 17 contact residues at the interface. Solid empirical finding."
 ```
 
-**Risposta attesa — il sistema propone il nodo:**
+**Expected response — the system proposes the node:**
 ```
-[1/1] Nodo candidato:
-  Tipo:       Observation
-  Contenuto:  The spike RBD domain binds ACE2 with 10-20x higher affinity than
+[1/1] Candidate node:
+  Type:       Observation
+  Content:    The spike RBD domain binds ACE2 with 10-20x higher affinity than
               SARS-CoV-1, with 17 contact residues at the interface.
   Confidence: 0.90
   Trigger:    Lan et al. 2020 (Nature): crystal structure shows that
-Approva questo nodo? [y/n/s/a]:
+Approve this node? [y/n/s/a]:
 ```
 
-**Digita:** `a`
+**Type:** `a`
 
 ```
-✓ Scritti 1 nodi: 81f9a15d
+✓ Wrote 1 nodes: 81f9a15d
 ```
 
 ---
 
-## 3. Inserisce un'ipotesi (pH / istidina 34)
+## 3. Enters a hypothesis (pH / histidine 34)
 
 ```bash
 uv run python cli/main.py agent-extract \
@@ -61,41 +61,41 @@ uv run python cli/main.py agent-extract \
   --text "Hypothesis: protonation of ACE2 histidine 34 in acidic endosomal environment (pH 5.5-6.0) may reduce spike binding affinity, impairing viral entry post-internalization. Open question: does this mechanism apply to all SARS-CoV-2 variants?"
 ```
 
-**Risposta attesa — il sistema rileva una possibile contraddizione:**
+**Expected response — the system detects a possible contradiction:**
 ```
-[1/2] Nodo candidato:
-  Tipo:       Hypothesis
-  Contenuto:  protonation of ACE2 histidine 34 in acidic endosomal environment
+[1/2] Candidate node:
+  Type:       Hypothesis
+  Content:    protonation of ACE2 histidine 34 in acidic endosomal environment
               (pH 5.5-6.0) may reduce spike binding affinity, impairing viral
               entry post-internalization.
   Confidence: 0.60
   Trigger:    Hypothesis
-  ⚠ Possibile contraddizione con nodo 81f9a15d:
-    "Il candidato suggerisce che la protonazione riduca l'affinità, mentre il
-    nodo esistente indica affinità 10-20x superiore a SARS-CoV-1."
-Approva questo nodo? [y/n/s/a]:
+  ⚠ Possible contradiction with node 81f9a15d:
+    "The candidate suggests that protonation reduces affinity, while the
+    existing node indicates 10-20x higher affinity than SARS-CoV-1."
+Approve this node? [y/n/s/a]:
 ```
 
-**Digita:** `a`
+**Type:** `a`
 
 ```
-Creare arco CONTRADDICE? [y/n]:
+Create CONTRADICTS edge? [y/n]:
 ```
 
-**Digita:** `y`
+**Type:** `y`
 
 ```
-✓ Archi candidati rilevati (2)
-  [1] apre_domanda → does this mechanism apply to all SARS-CoV-2 variants?
-  [2] supporta     → The spike RBD domain binds ACE2 with 10-20x...
+✓ Candidate edges detected (2)
+  [1] opens_question → does this mechanism apply to all SARS-CoV-2 variants?
+  [2] supports       → The spike RBD domain binds ACE2 with 10-20x...
 > y
-✓ Scritti 2 archi.
-✓ Scritti 2 nodi: b08f1faa, 66bacffe
+✓ Wrote 2 edges.
+✓ Wrote 2 nodes: b08f1faa, 66bacffe
 ```
 
 ---
 
-## 4. Inserisce un dead end (inibitori ACE2)
+## 4. Enters a dead end (ACE2 inhibitors)
 
 ```bash
 uv run python cli/main.py agent-extract \
@@ -104,32 +104,32 @@ uv run python cli/main.py agent-extract \
   --text "Tested ACE2 catalytic site inhibitors as antivirals. Result: blocking ACE2 worsens lung damage due to angiotensin II accumulation. Three weeks of work. Dead end — this path is closed."
 ```
 
-**Risposta attesa:**
+**Expected response:**
 ```
-[1/1] Nodo candidato:
-  Tipo:       DeadEnd
-  Contenuto:  Blocking ACE2 worsens lung damage due to angiotensin II
+[1/1] Candidate node:
+  Type:       DeadEnd
+  Content:    Blocking ACE2 worsens lung damage due to angiotensin II
               accumulation.
   Confidence: 0.90
   Trigger:    Tested ACE2 catalytic site inhibitors as antivirals.
-Approva questo nodo? [y/n/s/a]:
+Approve this node? [y/n/s/a]:
 ```
 
-**Digita:** `a`
+**Type:** `a`
 
 ```
-✓ Archi candidati rilevati (3)
-  [1] supporta    → The spike RBD domain binds ACE2...
-  [2] apre_domanda → does this mechanism apply...
-  [3] risolve      → protonation of ACE2 histidine 34...
+✓ Candidate edges detected (3)
+  [1] supports       → The spike RBD domain binds ACE2...
+  [2] opens_question → does this mechanism apply...
+  [3] resolves       → protonation of ACE2 histidine 34...
 > y
-✓ Scritti 3 archi.
-✓ Scritti 1 nodi: 07e2f642
+✓ Wrote 3 edges.
+✓ Wrote 1 nodes: 07e2f642
 ```
 
 ---
 
-## 5. Inserisce la scoperta TMPRSS2 (Hoffmann et al.)
+## 5. Enters the TMPRSS2 discovery (Hoffmann et al.)
 
 ```bash
 uv run python cli/main.py agent-extract \
@@ -138,34 +138,34 @@ uv run python cli/main.py agent-extract \
   --text "Hoffmann et al. 2020 (Cell): TMPRSS2 serine protease is required for spike priming on the cell surface. ACE2 alone is not sufficient for viral entry. The TMPRSS2-mediated pathway bypasses the endosomal route — pH is not the main limiting factor. The histidine 34 protonation hypothesis is contradicted."
 ```
 
-**Risposta attesa — 4 nodi proposti in sequenza:**
+**Expected response — 4 nodes proposed in sequence:**
 ```
-[1/4] Nodo candidato:
-  Tipo:       Observation
-  Contenuto:  TMPRSS2 serine protease is required for spike priming on the
+[1/4] Candidate node:
+  Type:       Observation
+  Content:    TMPRSS2 serine protease is required for spike priming on the
               cell surface.
   Confidence: 0.90
   Trigger:    Hoffmann et al. 2020 (Cell)
-Approva questo nodo? [y/n/s/a]:
+Approve this node? [y/n/s/a]:
 ```
 
-**Digita:** `a`
+**Type:** `a`
 
 ```
-✓ Archi candidati rilevati (5)
-  [1] supporta     → ACE2 alone is not sufficient for viral entry
-  [2] contraddice  → protonation of ACE2 histidine 34...
-  [3] apre_domanda → does this mechanism apply to all variants?
-  [4] falsifica    → protonation of ACE2 histidine 34...
-  [5] supporta     → The spike RBD domain binds ACE2...
+✓ Candidate edges detected (5)
+  [1] supports       → ACE2 alone is not sufficient for viral entry
+  [2] contradicts    → protonation of ACE2 histidine 34...
+  [3] opens_question → does this mechanism apply to all variants?
+  [4] falsifies      → protonation of ACE2 histidine 34...
+  [5] supports       → The spike RBD domain binds ACE2...
 > y
-✓ Scritti 5 archi.
-✓ Scritti 4 nodi: 2b637865, 87bb325b, 513ed646, ade23470
+✓ Wrote 5 edges.
+✓ Wrote 4 nodes: 2b637865, 87bb325b, 513ed646, ade23470
 ```
 
 ---
 
-## 6. Aggiunge una pagina Wiki di sintesi
+## 6. Adds a synthesis Wiki page
 
 ```bash
 uv run python cli/main.py wiki-add \
@@ -176,26 +176,26 @@ uv run python cli/main.py wiki-add \
   --content "RBD-ACE2 high affinity confirmed (Lan et al.). pH/histidine 34 hypothesis superseded by TMPRSS2 pathway (Hoffmann et al.). ACE2 inhibition as antiviral: certified dead end — angiotensin II accumulation."
 ```
 
-**Risposta attesa:**
+**Expected response:**
 ```
-✓ WikiPage creata: 13b200d4-b370-416a-9ac0-d292a9d89ffc (v1)
-  Titolo: Research synthesis — week 3
+✓ WikiPage created: 13b200d4-b370-416a-9ac0-d292a9d89ffc (v1)
+  Title: Research synthesis — week 3
 ```
 
 ---
 
-## 7. Mostra il grafo completo
+## 7. Show the full graph
 
 ```bash
 uv run python cli/main.py show --user-id marco
 ```
 
-**Risposta attesa:**
+**Expected response:**
 ```
-Grafo utente: marco  (8 nodi, 11 archi)
+User graph: marco  (8 nodes, 11 edges)
 
 ┌──────────┬──────────────┬────────┬──────────────────────────────────────────────┬─────────────────────────────────┐
-│ ID       │ Tipo         │ Conf   │ Contenuto                                    │ Trigger                         │
+│ ID       │ Type         │ Conf   │ Content                                      │ Trigger                         │
 ├──────────┼──────────────┼────────┼──────────────────────────────────────────────┼─────────────────────────────────┤
 │ 07e2f642 │ DeadEnd      │ 0.90   │ Blocking ACE2 worsens lung damage...         │ Tested ACE2 catalytic site...   │
 │ 2b637865 │ Observation  │ 0.90   │ TMPRSS2 serine protease is required...       │ Hoffmann et al. 2020 (Cell)     │
@@ -208,37 +208,37 @@ Grafo utente: marco  (8 nodi, 11 archi)
 └──────────┴──────────────┴────────┴──────────────────────────────────────────────┴─────────────────────────────────┘
 
 ┌──────────┬────────────────┬──────────┬────────┐
-│ Da       │ Tipo           │ A        │ Conf   │
+│ From     │ Type           │ To       │ Conf   │
 ├──────────┼────────────────┼──────────┼────────┤
-│ 81f9a15d │ supporta       │ b08f1faa │ 0.90   │
-│ b08f1faa │ contraddice    │ 81f9a15d │ 1.00   │
-│ b08f1faa │ apre_domanda   │ 66bacffe │ 0.60   │
-│ 07e2f642 │ supporta       │ 81f9a15d │ 0.90   │
-│ 07e2f642 │ apre_domanda   │ 66bacffe │ 0.60   │
-│ 07e2f642 │ risolve        │ b08f1faa │ 0.60   │
-│ 2b637865 │ supporta       │ 87bb325b │ 0.90   │
-│ 2b637865 │ apre_domanda   │ 66bacffe │ 0.60   │
-│ 2b637865 │ supporta       │ 81f9a15d │ 0.90   │
-│ 513ed646 │ contraddice    │ b08f1faa │ 0.60   │
-│ ade23470 │ falsifica      │ b08f1faa │ 0.90   │
+│ 81f9a15d │ supports       │ b08f1faa │ 0.90   │
+│ b08f1faa │ contradicts    │ 81f9a15d │ 1.00   │
+│ b08f1faa │ opens_question │ 66bacffe │ 0.60   │
+│ 07e2f642 │ supports       │ 81f9a15d │ 0.90   │
+│ 07e2f642 │ opens_question │ 66bacffe │ 0.60   │
+│ 07e2f642 │ resolves       │ b08f1faa │ 0.60   │
+│ 2b637865 │ supports       │ 87bb325b │ 0.90   │
+│ 2b637865 │ opens_question │ 66bacffe │ 0.60   │
+│ 2b637865 │ supports       │ 81f9a15d │ 0.90   │
+│ 513ed646 │ contradicts    │ b08f1faa │ 0.60   │
+│ ade23470 │ falsifies      │ b08f1faa │ 0.90   │
 └──────────┴────────────────┴──────────┴────────┘
 ```
 
 ---
 
-## 8. Consulta la storia di un nodo specifico
+## 8. Consult the history of a specific node
 
 ```bash
 uv run python cli/main.py history \
   --node-id 07e2f642-7bb8-43df-8cdd-e19d6ae3926b
 ```
 
-**Risposta attesa:**
+**Expected response:**
 ```
-Storia: 07e2f642…
+History: 07e2f642…
 
 ┌──────┬────────┬────────────────────────────────────────────────────┬──────────────────────────────────┬─────────────────────┐
-│ Ver  │ Conf   │ Contenuto                                          │ Trigger                          │ Creato              │
+│ Ver  │ Conf   │ Content                                            │ Trigger                          │ Created             │
 ├──────┼────────┼────────────────────────────────────────────────────┼──────────────────────────────────┼─────────────────────┤
 │ 1    │ 0.90   │ Blocking ACE2 worsens lung damage due to           │ Tested ACE2 catalytic site       │ 2026-05-11 11:09:37 │
 │      │        │ angiotensin II accumulation.                       │ inhibitors as antivirals.        │                     │
@@ -247,7 +247,7 @@ Storia: 07e2f642…
 
 ---
 
-## 9. Legge la pagina Wiki
+## 9. Read the Wiki page
 
 ```bash
 uv run python -c "
@@ -264,7 +264,7 @@ for entity, state in pages:
 "
 ```
 
-**Risposta attesa:**
+**Expected response:**
 ```
 --- Research synthesis — week 3 (v1) ---
 RBD-ACE2 high affinity confirmed (Lan et al.). pH/histidine 34 hypothesis
@@ -274,17 +274,17 @@ certified dead end — angiotensin II accumulation.
 
 ---
 
-## Riepilogo comandi
+## Command summary
 
-| Comando             | Scopo                                          |
+| Command             | Purpose                                        |
 |---------------------|------------------------------------------------|
-| `project-create`    | Crea un nuovo progetto di ricerca              |
-| `agent-extract`     | Estrae nodi da testo libero (interattivo)      |
-| `wiki-add`          | Aggiunge una pagina di sintesi al progetto     |
-| `show`              | Snapshot del grafo: nodi + archi attivi        |
-| `history`           | Storia completa di un nodo (tutte le versioni) |
-| `update`            | Aggiorna un nodo (crea nuova versione)         |
-| `edge-create`       | Crea un arco manualmente tra due nodi          |
-| `edge-invalidate`   | Invalida un arco (non lo cancella)             |
-| `project-assign`    | Assegna un nodo a un progetto                  |
-| `doc-add`           | Aggiunge un documento al DocumentIndex         |
+| `project-create`    | Create a new research project                  |
+| `agent-extract`     | Extract nodes from free-form text (interactive)|
+| `wiki-add`          | Add a synthesis page to the project            |
+| `show`              | Graph snapshot: active nodes + edges           |
+| `history`           | Full history of a node (all versions)          |
+| `update`            | Update a node (creates a new version)          |
+| `edge-create`       | Manually create an edge between two nodes      |
+| `edge-invalidate`   | Invalidate an edge (does not delete it)        |
+| `project-assign`    | Assign a node to a project                     |
+| `doc-add`           | Add a document to the DocumentIndex            |
