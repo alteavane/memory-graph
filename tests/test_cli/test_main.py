@@ -82,3 +82,42 @@ class TestLinkCommand:
         ])
         assert result.exit_code == 0, result.output
         assert "Edge created" in result.output
+
+
+class TestIdentityCommands:
+    def test_identity_show_never_prints_private_key(self, tmp_path):
+        import kuzu
+        from memorygraph.auth.identity import IdentityStore
+        from memorygraph.auth.schema import init_auth_schema
+        from memorygraph.graph.schema import init_schema
+
+        db = kuzu.Database(str(tmp_path / "id.kuzu"))
+        c = kuzu.Connection(db)
+        init_schema(c)
+        init_auth_schema(c)
+        store = IdentityStore(c)
+
+        with patch("cli.main._get_identity_store", return_value=store):
+            create_result = runner.invoke(app, ["identity-create", "--user-id", "u1"])
+            created = store.get_identity("u1", include_private=True)
+            show_result = runner.invoke(app, ["identity-show", "--user-id", "u1"])
+
+        assert create_result.exit_code == 0, create_result.output
+        assert show_result.exit_code == 0, show_result.output
+        assert created.public_key in show_result.output
+        assert created.private_key not in show_result.output
+
+    def test_identity_show_missing_exits_nonzero(self, tmp_path):
+        import kuzu
+        from memorygraph.auth.identity import IdentityStore
+        from memorygraph.auth.schema import init_auth_schema
+        from memorygraph.graph.schema import init_schema
+
+        db = kuzu.Database(str(tmp_path / "id.kuzu"))
+        c = kuzu.Connection(db)
+        init_schema(c)
+        init_auth_schema(c)
+
+        with patch("cli.main._get_identity_store", return_value=IdentityStore(c)):
+            result = runner.invoke(app, ["identity-show", "--user-id", "ghost"])
+        assert result.exit_code == 1

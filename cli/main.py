@@ -16,6 +16,8 @@ from memorygraph.graph.store import GraphStore
 from memorygraph.context import ContextStore
 from memorygraph.agent.agent import MemoryAgent
 from memorygraph.llm import make_llm
+from memorygraph.auth.identity import IdentityStore
+from memorygraph.auth.schema import init_auth_schema
 
 app = typer.Typer(help="MemoryGraph CLI - personal belief-based graph store.")
 console = Console()
@@ -27,6 +29,12 @@ def _get_store() -> GraphStore:
 
 def _get_context() -> ContextStore:
     return ContextStore(DB_PATH)
+
+
+def _get_identity_store() -> IdentityStore:
+    store = GraphStore(DB_PATH)
+    init_auth_schema(store._conn)
+    return IdentityStore(store._conn)
 
 
 def _fmt_ts(dt: datetime | None) -> str:
@@ -310,6 +318,30 @@ def agent_extract(
         console.print(f"\n[green]✓[/green] Wrote {len(ids)} node(s): {', '.join(i[:8] for i in ids)}")
     else:
         console.print("\n[yellow]No node approved.[/yellow]")
+
+
+@app.command(name="identity-create")
+def identity_create(
+    user_id: str = typer.Option(..., help="User ID"),
+) -> None:
+    """Create a new Ed25519 identity for a user."""
+    store = _get_identity_store()
+    identity = store.create_identity(user_id)
+    console.print(f"[green]✓[/green] Identity created for [bold]{identity.user_id}[/bold]")
+    console.print(f"  Public key: {identity.public_key}")
+
+
+@app.command(name="identity-show")
+def identity_show(
+    user_id: str = typer.Option(..., help="User ID"),
+) -> None:
+    """Show a user's public key (the private key is never displayed)."""
+    store = _get_identity_store()
+    public_key = store.get_public_key(user_id)
+    if public_key is None:
+        console.print(f"[red]No identity found for {user_id}[/red]")
+        raise typer.Exit(code=1)
+    console.print(f"Public key for [bold]{user_id}[/bold]: {public_key}")
 
 
 if __name__ == "__main__":
