@@ -12,9 +12,13 @@ htmlcov/
 .DS_Store
 .claude/
 
-# DB della demo VHS (il GIF finale invece va committato)
+# VHS demo DB (the final GIF is committed instead)
 data/demo.kuzu
 AGENTS.md
 CLAUDE-v0.1.md
 openspec/
 docs/
+
+# Local working folders for specs and implementation plans — not for GitHub
+specs/
+plans/
