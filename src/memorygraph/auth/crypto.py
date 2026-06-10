@@ -44,10 +44,10 @@ def sign(payload: dict, private_key_b64: str) -> str:
 
 def verify(payload: dict, signature_b64: str, public_key_b64: str) -> bool:
     """Return True iff ``signature_b64`` is a valid signature of ``payload``."""
-    public = Ed25519PublicKey.from_public_bytes(
-        base64.b64decode(public_key_b64)
-    )
     try:
+        public = Ed25519PublicKey.from_public_bytes(
+            base64.b64decode(public_key_b64)
+        )
         public.verify(base64.b64decode(signature_b64), canonical_bytes(payload))
         return True
     except (InvalidSignature, ValueError):

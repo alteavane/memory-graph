@@ -56,3 +56,11 @@ def test_verify_fails_with_wrong_key():
 def test_verify_fails_on_malformed_signature():
     _, public_key = generate_keypair()
     assert verify({"x": 1}, "not-a-real-signature", public_key) is False
+
+
+def test_verify_fails_on_malformed_public_key():
+    private_key, _ = generate_keypair()
+    signature = sign({"x": 1}, private_key)
+    # too-short / invalid public key must return False, not raise
+    assert verify({"x": 1}, signature, "dG9vc2hvcnQ=") is False
+    assert verify({"x": 1}, signature, "not-base64!!!") is False
