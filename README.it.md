@@ -2,6 +2,10 @@
 
 > *Il processo del pensiero, reso permanente.*
 
+<p align="center">
+  <img src="demo.gif" alt="Demo della CLI MemoryGraph: il Memory Agent estrae nodi da testo libero, segnala una contraddizione, propone archi, e l'ipotesi falsificata collassa mentre la sua storia completa resta preservata" width="820">
+</p>
+
 La maggior parte di ciò che i ricercatori imparano davvero non viene mai registrata.
 L'ipotesi fallita alle 23. Il cambio di rotta dopo un'osservazione sbagliata.
 Il vicolo cieco che ha richiesto tre settimane — e avrebbe risparmiato tre mesi alla persona successiva.

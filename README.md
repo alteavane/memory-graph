@@ -2,6 +2,10 @@
 
 > *The process of thinking, made permanent.*
 
+<p align="center">
+  <img src="demo.gif" alt="MemoryGraph CLI demo: the Memory Agent extracts nodes from free text, flags a contradiction, proposes edges, and the falsified hypothesis collapses while its full history is preserved" width="820">
+</p>
+
 Most of what researchers actually learn never gets recorded.
 The failed hypothesis at 11pm. The pivot after a wrong observation.
 The dead end that took three weeks — and would have saved the next person three months.
