@@ -22,7 +22,7 @@ def _make_anthropic_llm() -> LLMCallable:
         import anthropic
     except ImportError as e:
         raise RuntimeError(
-            "anthropic non installato. Esegui: uv add anthropic"
+            "anthropic is not installed. Run: uv add anthropic"
         ) from e
 
     client = anthropic.Anthropic(api_key=os.environ[_ANTHROPIC_KEY_ENV])
@@ -43,7 +43,7 @@ def _make_openai_llm() -> LLMCallable:
         import openai
     except ImportError as e:
         raise RuntimeError(
-            "openai non installato. Esegui: uv add openai"
+            "openai is not installed. Run: uv add openai"
         ) from e
 
     client = openai.OpenAI(api_key=os.environ[_OPENAI_KEY_ENV])
@@ -62,8 +62,8 @@ _UUID_RE = re.compile(
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 )
 
-# Fixtures di estrazione: (substring riconosciuto nel testo) → nodi candidati.
-# Riproduce in modo deterministico lo scenario SARS-CoV-2 di demo/memorygraph-video-script.md.
+# Extraction fixtures: (substring recognized in the text) → candidate nodes.
+# Deterministically reproduces the SARS-CoV-2 scenario from demo/memorygraph-video-script.md.
 _DEMO_EXTRACTIONS: list[tuple[str, list[dict]]] = [
     ("Lan et al", [
         {"type": "Observation",
@@ -99,7 +99,7 @@ def _demo_extract(prompt: str) -> str:
 
 
 def _id_for(block: str, keyword: str) -> str | None:
-    """Primo UUID che compare su una riga del blocco contenente ``keyword``."""
+    """First UUID appearing on a line of the block that contains ``keyword``."""
     for line in block.splitlines():
         if keyword in line:
             m = _UUID_RE.search(line)
@@ -109,7 +109,7 @@ def _id_for(block: str, keyword: str) -> str | None:
 
 
 def _demo_detect(prompt: str) -> str:
-    # L'ipotesi pH contraddice l'osservazione sull'alta affinità RBD-ACE2.
+    # The pH hypothesis contradicts the observation about high RBD-ACE2 affinity.
     candidate_part = prompt.split("Existing nodes")[0]
     if "histidine 34" in candidate_part:
         node_id = _id_for(prompt, "higher affinity")
@@ -127,30 +127,30 @@ def _demo_link(prompt: str) -> str:
     new_part, _, existing_part = prompt.partition("Existing nodes in the graph:")
     edges: list[dict] = []
 
-    # apre_domanda: l'ipotesi (appena aggiunta) genera la open question sulle varianti
+    # opens_question: the hypothesis (just added) raises the open question about variants
     hyp_id = _id_for(new_part, "histidine 34")
     oq_id = _id_for(prompt, "mechanism apply to all")
     if hyp_id and oq_id:
-        edges.append({"from": hyp_id, "to": oq_id, "type": "apre_domanda",
+        edges.append({"from": hyp_id, "to": oq_id, "type": "opens_question",
                       "confidence": 0.70, "reason": "The pH hypothesis raises a question about variants."})
 
-    # falsifica: l'osservazione TMPRSS2 (appena aggiunta) invalida l'ipotesi pH
+    # falsifies: the TMPRSS2 observation (just added) invalidates the pH hypothesis
     tmprss2_id = _id_for(new_part, "TMPRSS2")
     target_hyp_id = _id_for(prompt, "histidine 34")
     if tmprss2_id and target_hyp_id:
-        edges.append({"from": tmprss2_id, "to": target_hyp_id, "type": "falsifica",
+        edges.append({"from": tmprss2_id, "to": target_hyp_id, "type": "falsifies",
                       "confidence": 0.85, "reason": "The TMPRSS2 surface pathway bypasses the endosome, so pH is not limiting."})
 
     return json.dumps({"edges": edges})
 
 
 def _make_demo_llm() -> LLMCallable:
-    """LLM di replay deterministico per la demo — nessuna chiamata di rete.
+    """Deterministic replay LLM for the demo — no network calls.
 
-    Riconosce i tre tipi di prompt (estrazione, rilevamento contraddizioni,
-    proposta archi) e restituisce risposte fisse coerenti con lo scenario
-    SARS-CoV-2. Gli UUID dei nodi vengono risolti leggendoli dal prompt stesso,
-    quindi il flusso resta deterministico anche se gli ID cambiano a ogni run.
+    Recognizes the three prompt types (extraction, contradiction detection,
+    edge proposal) and returns fixed responses consistent with the SARS-CoV-2
+    scenario. Node UUIDs are resolved by reading them from the prompt itself,
+    so the flow stays deterministic even if the IDs change on every run.
     """
     def demo(prompt: str) -> str:
         if "contradiction detector" in prompt:
@@ -163,13 +163,13 @@ def _make_demo_llm() -> LLMCallable:
 
 
 def make_llm() -> LLMCallable:
-    """Seleziona il provider LLM dalla configurazione ambiente.
+    """Select the LLM provider from the environment configuration.
 
-    Priorità:
-    1. MEMORYGRAPH_LLM_PROVIDER=anthropic|openai  (esplicito)
-    2. ANTHROPIC_API_KEY presente → anthropic
-    3. OPENAI_API_KEY presente → openai
-    4. Nessuna chiave → demo (stub)
+    Priority:
+    1. MEMORYGRAPH_LLM_PROVIDER=anthropic|openai  (explicit)
+    2. ANTHROPIC_API_KEY present → anthropic
+    3. OPENAI_API_KEY present → openai
+    4. No key → demo (stub)
     """
     explicit = os.getenv(_PROVIDER_ENV, "").lower().strip()
     if explicit == "demo":

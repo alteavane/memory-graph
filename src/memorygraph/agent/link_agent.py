@@ -75,13 +75,13 @@ class LinkAgent:
         user_id: str,
         project_id: str | None = None,
     ) -> list[ProposedEdge]:
-        """Carica contesto → LLM → filtra → arricchisce → ritorna ProposedEdge."""
+        """Load context → LLM → filter → enrich → return ProposedEdge."""
         node_contents = self._load_all_nodes(user_id, project_id)
         if not node_contents:
             return []
 
         valid_ids = set(node_contents.keys())
-        # verifica che i new_node_ids siano effettivamente nel grafo
+        # verify that the new_node_ids are actually in the graph
         new_node_ids = [nid for nid in new_node_ids if nid in valid_ids]
         if not new_node_ids:
             return []
@@ -107,7 +107,7 @@ class LinkAgent:
         user_id: str,
         project_id: str | None = None,
     ) -> list[str]:
-        """propose → tabella interattiva → scrittura."""
+        """propose → interactive table → write."""
         proposed = self.propose(new_node_ids, user_id=user_id, project_id=project_id)
         if not proposed:
             return []
@@ -122,8 +122,8 @@ class LinkAgent:
         project_id: str | None,
     ) -> dict[str, dict]:
         """
-        Ritorna {node_id: {content, type, confidence}} per tutti i nodi attivi dell'utente.
-        Se project_id presente, filtra per progetto (via BELONGS_TO).
+        Return {node_id: {content, type, confidence}} for all of the user's active nodes.
+        If project_id is provided, filter by project (via BELONGS_TO).
         """
         graph = self._store.get_graph(user_id)
         result = {}
@@ -142,12 +142,12 @@ You have a set of newly added nodes and a set of existing nodes in the graph.
 Your task is to identify significant semantic relationships between them.
 
 Valid EdgeTypes:
-- supporta       → A provides evidence in favor of B
-- contraddice    → A is in tension or conflict with B
-- deriva_da      → A is a logical consequence or deduction of B
-- falsifica      → A is empirical evidence that invalidates B
-- apre_domanda   → A generates an open question represented by B
-- risolve        → A answers or closes the open question B
+- supports       → A provides evidence in favor of B
+- contradicts    → A is in tension or conflict with B
+- derives_from   → A is a logical consequence or deduction of B
+- falsifies      → A is empirical evidence that invalidates B
+- opens_question → A generates an open question represented by B
+- resolves       → A answers or closes the open question B
 
 Confidence scale:
 0.9+    → evident and direct relationship
@@ -192,7 +192,7 @@ def _parse_candidates(
         except (TypeError, ValueError):
             continue
 
-        # validazioni
+        # validations
         if from_id not in valid_ids or to_id not in valid_ids:
             continue
         if from_id == to_id:

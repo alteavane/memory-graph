@@ -16,14 +16,14 @@ def db_path(tmp_path):
 
 
 def _extractor_llm(prompt: str) -> str:
-    """Mock LLM che ritorna un nodo Hypothesis valido."""
-    return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 è il recettore", "confidence": 0.7, "trigger": "paper Zhang"}]}'
+    """Mock LLM that returns a valid Hypothesis node."""
+    return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 is the receptor", "confidence": 0.7, "trigger": "paper Zhang"}]}'
 
 
 def _no_contradiction_llm(prompt: str) -> str:
-    """Mock LLM: estrae un nodo, non rileva contraddizioni."""
+    """Mock LLM: extracts one node, detects no contradictions."""
     if "Valid NodeTypes" in prompt:
-        return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 è il recettore", "confidence": 0.7, "trigger": "paper Zhang"}]}'
+        return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 is the receptor", "confidence": 0.7, "trigger": "paper Zhang"}]}'
     return '{"contradiction": false, "node_id": null, "reason": null}'
 
 
@@ -34,22 +34,22 @@ def agent(tmp_path):
 
 class TestMemoryAgentExtract:
     def test_extract_returns_candidates(self, agent):
-        result = agent.extract("Il pH ottimale per la reazione è 7.4")
+        result = agent.extract("The optimal pH for the reaction is 7.4")
         assert len(result) == 1
         assert isinstance(result[0], CandidateNode)
         assert result[0].type == NodeType.HYPOTHESIS
 
     def test_extract_without_project_id(self, agent):
-        result = agent.extract("testo senza progetto")
+        result = agent.extract("text without project")
         assert result[0].project_id is None
 
     def test_extract_with_project_id_propagated(self, tmp_path):
         agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=_extractor_llm)
-        result = agent.extract("testo", project_id="proj-999")
+        result = agent.extract("text", project_id="proj-999")
         assert result[0].project_id == "proj-999"
 
     def test_extract_full_context_used_when_project_exists(self, tmp_path):
-        """Verifica che full_context del progetto venga passato al LLM quando il progetto esiste."""
+        """Verify the project's full_context is passed to the LLM when the project exists."""
         captured_prompts = []
 
         def capturing_llm(prompt: str) -> str:
@@ -59,29 +59,29 @@ class TestMemoryAgentExtract:
         agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=capturing_llm)
         project = agent._project_store.create_project(
             user_id="u1", title="T", objective="O",
-            summary="summary pubblico", full_context="full context segreto",
+            summary="public summary", full_context="secret full context",
         )
-        agent.extract("testo", project_id=project.id)
-        assert any("full context segreto" in p for p in captured_prompts)
+        agent.extract("text", project_id=project.id)
+        assert any("secret full context" in p for p in captured_prompts)
 
 
 class TestMemoryAgentPropose:
     def test_propose_returns_proposed_nodes(self, tmp_path):
         agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=_no_contradiction_llm)
-        result = agent.propose("Il pH ottimale è 7.4")
+        result = agent.propose("The optimal pH is 7.4")
         assert len(result) == 1
         assert isinstance(result[0], ProposedNode)
         assert result[0].hint is None
 
     def test_propose_filters_below_threshold(self, tmp_path):
         def _low_confidence_llm(p: str) -> str:
-            return '{"nodes": [{"type": "Hypothesis", "content": "speculazione", "confidence": 0.1, "trigger": "t"}]}'
+            return '{"nodes": [{"type": "Hypothesis", "content": "speculation", "confidence": 0.1, "trigger": "t"}]}'
         agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=_low_confidence_llm, min_confidence=0.3)
-        result = agent.propose("testo")
+        result = agent.propose("text")
         assert len(result) == 0
 
     def test_propose_loads_project_nodes(self, tmp_path):
-        """Verifica che _load_project_nodes funzioni con un progetto reale."""
+        """Verify _load_project_nodes works with a real project."""
         db_path = str(tmp_path / "test.kuzu")
 
         agent = MemoryAgent(db_path, llm=_no_contradiction_llm)
@@ -90,7 +90,7 @@ class TestMemoryAgentPropose:
             user_id="u1", title="T", objective="O", summary="s", full_context="fc"
         )
         existing_node = agent._store.create_node(
-            "u1", NodeType.HYPOTHESIS, "nodo esistente", 0.8, "trigger"
+            "u1", NodeType.HYPOTHESIS, "existing node", 0.8, "trigger"
         )
         agent._store._conn.execute(
             "MATCH (n:NodeEntity), (p:Project) WHERE n.id = $nid AND p.id = $pid "
@@ -99,7 +99,7 @@ class TestMemoryAgentPropose:
         )
 
         # propose should load project nodes without error
-        result = agent.propose("Il pH ottimale è 7.4", project_id=project.id)
+        result = agent.propose("The optimal pH is 7.4", project_id=project.id)
         assert len(result) == 1  # one proposed node (filtered+passed through pipeline)
 
 
@@ -107,7 +107,7 @@ class TestMemoryAgentRunValidation:
     def test_run_raises_if_user_id_none(self, tmp_path):
         agent = MemoryAgent(str(tmp_path / "test.kuzu"), llm=_no_contradiction_llm)
         with pytest.raises(ValueError, match="user_id"):
-            agent.run("testo", user_id=None)
+            agent.run("text", user_id=None)
 
 
 class TestMemoryAgentRunApproval:
@@ -117,7 +117,7 @@ class TestMemoryAgentRunApproval:
             llm=_no_contradiction_llm,
             _input_fn=lambda p: "y",
         )
-        ids = agent.run("Il pH ottimale è 7.4", user_id="u1")
+        ids = agent.run("The optimal pH is 7.4", user_id="u1")
         assert len(ids) == 1
         graph = agent._store.get_graph("u1")
         assert len(graph["nodes"]) == 1
@@ -128,7 +128,7 @@ class TestMemoryAgentRunApproval:
             llm=_no_contradiction_llm,
             _input_fn=lambda p: "n",
         )
-        ids = agent.run("testo", user_id="u1")
+        ids = agent.run("text", user_id="u1")
         assert len(ids) == 0
         graph = agent._store.get_graph("u1")
         assert len(graph["nodes"]) == 0
@@ -148,7 +148,7 @@ class TestMemoryAgentRunApproval:
             llm=multi_llm,
             _input_fn=lambda p: next(responses),
         )
-        ids = agent.run("testo", user_id="u1")
+        ids = agent.run("text", user_id="u1")
         assert len(ids) == 0
 
     def test_run_a_approves_all_remaining(self, tmp_path):
@@ -166,7 +166,7 @@ class TestMemoryAgentRunApproval:
             llm=multi_llm,
             _input_fn=lambda p: next(responses),
         )
-        ids = agent.run("testo", user_id="u1")
+        ids = agent.run("text", user_id="u1")
         assert len(ids) == 2
 
 
@@ -183,7 +183,7 @@ class TestMemoryAgentContradiction:
             summary="summary", full_context="context",
         )
         existing = agent._store.create_node(
-            "u1", NodeType.HYPOTHESIS, "ACE2 non è il recettore primario", 0.8, "t"
+            "u1", NodeType.HYPOTHESIS, "ACE2 is not the primary receptor", 0.8, "t"
         )
         agent._store._conn.execute(
             "MATCH (n:NodeEntity), (p:Project) WHERE n.id = $nid AND p.id = $pid "
@@ -194,18 +194,18 @@ class TestMemoryAgentContradiction:
         # Smart LLM: extracts a node on first call, detects contradiction on second
         def smart_llm(prompt: str) -> str:
             if "Valid NodeTypes" in prompt:
-                return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 è il recettore", "confidence": 0.8, "trigger": "paper"}]}'
-            return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "Contraddice diretta"}}'
+                return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 is the receptor", "confidence": 0.8, "trigger": "paper"}]}'
+            return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "Direct contradiction"}}'
 
         agent._llm = smart_llm
-        responses = iter(["y", "y"])  # first y = approve node, second y = create CONTRADDICE edge
+        responses = iter(["y", "y"])  # first y = approve node, second y = create CONTRADICTS edge
         agent._input_fn = lambda p: next(responses)
 
-        ids = agent.run("testo", project_id=project.id, user_id="u1")
+        ids = agent.run("text", project_id=project.id, user_id="u1")
 
         assert len(ids) == 1
         graph = agent._store.get_graph("u1")
-        edges = [e for e in graph["edges"] if e.type == EdgeType.CONTRADDICE]
+        edges = [e for e in graph["edges"] if e.type == EdgeType.CONTRADICTS]
         assert len(edges) == 1
         assert edges[0].from_node == ids[0]
         assert edges[0].to_node == existing.id
@@ -217,7 +217,7 @@ class TestMemoryAgentContradiction:
         project = agent._project_store.create_project(
             user_id="u1", title="T", objective="o", summary="s", full_context="fc",
         )
-        existing = agent._store.create_node("u1", NodeType.HYPOTHESIS, "tesi contraria", 0.8, "t")
+        existing = agent._store.create_node("u1", NodeType.HYPOTHESIS, "opposing thesis", 0.8, "t")
         agent._store._conn.execute(
             "MATCH (n:NodeEntity), (p:Project) WHERE n.id = $nid AND p.id = $pid "
             "CREATE (n)-[:BELONGS_TO]->(p)",
@@ -226,23 +226,23 @@ class TestMemoryAgentContradiction:
 
         def smart_llm(prompt: str) -> str:
             if "Valid NodeTypes" in prompt:
-                return '{"nodes": [{"type": "Hypothesis", "content": "nuova tesi", "confidence": 0.8, "trigger": "t"}]}'
-            return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "contraddice"}}'
+                return '{"nodes": [{"type": "Hypothesis", "content": "new thesis", "confidence": 0.8, "trigger": "t"}]}'
+            return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "contradicts"}}'
 
         agent._llm = smart_llm
-        responses = iter(["y", "n"])  # approve node, refuse CONTRADDICE edge
+        responses = iter(["y", "n"])  # approve node, refuse CONTRADICTS edge
         agent._input_fn = lambda p: next(responses)
 
-        ids = agent.run("testo", project_id=project.id, user_id="u1")
+        ids = agent.run("text", project_id=project.id, user_id="u1")
         assert len(ids) == 1
         graph = agent._store.get_graph("u1")
-        edges = [e for e in graph["edges"] if e.type == EdgeType.CONTRADDICE]
+        edges = [e for e in graph["edges"] if e.type == EdgeType.CONTRADICTS]
         assert len(edges) == 0
 
 
 class TestAgentLinkIntegration:
     def test_run_calls_link_agent_after_nodes(self, db_path, monkeypatch):
-        """MemoryAgent.run() chiama LinkAgent dopo aver scritto i nodi."""
+        """MemoryAgent.run() calls LinkAgent after writing the nodes."""
         import memorygraph.agent.link_agent as la_module
         called_with = []
 
@@ -256,11 +256,11 @@ class TestAgentLinkIntegration:
 
         mock_llm = lambda p: '{"nodes": [{"type": "Hypothesis", "content": "test", "confidence": 0.7, "trigger": "t"}]}'
         agent = MemoryAgent(db_path, llm=mock_llm, _input_fn=lambda _: "y")
-        written = agent.run("testo di test", user_id="u1")
+        written = agent.run("test text", user_id="u1")
         assert len(called_with) == len(written)
 
     def test_run_skips_link_agent_if_no_nodes_written(self, db_path, monkeypatch):
-        """Se zero nodi approvati, LinkAgent.run() non viene chiamato."""
+        """If zero nodes approved, LinkAgent.run() is not called."""
         import memorygraph.agent.link_agent as la_module
         link_called = []
 
@@ -273,6 +273,6 @@ class TestAgentLinkIntegration:
         monkeypatch.setattr(la_module, "LinkAgent", MockLinkAgent)
 
         mock_llm = lambda p: '{"nodes": [{"type": "Hypothesis", "content": "test", "confidence": 0.7, "trigger": "t"}]}'
-        agent = MemoryAgent(db_path, llm=mock_llm, _input_fn=lambda _: "n")  # rifiuta tutti
-        agent.run("testo di test", user_id="u1")
+        agent = MemoryAgent(db_path, llm=mock_llm, _input_fn=lambda _: "n")  # reject all
+        agent.run("test text", user_id="u1")
         assert link_called == []

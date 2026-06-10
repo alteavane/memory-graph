@@ -27,31 +27,31 @@ def patched(store):
 
 class TestUpdateOptionalContent:
     def test_update_without_content_reuses_last_state(self, patched):
-        entity = patched.create_node("u1", NodeType.HYPOTHESIS, "contenuto originale", 0.7, "inizio")
+        entity = patched.create_node("u1", NodeType.HYPOTHESIS, "original content", 0.7, "start")
         result = runner.invoke(app, [
             "update",
             "--node-id", entity.id,
             "--confidence", "0.9",
-            "--trigger", "nuova evidenza",
+            "--trigger", "new evidence",
         ])
         assert result.exit_code == 0, result.output
         history = patched.get_node_history(entity.id)
         assert len(history) == 2
-        assert history[1].content == "contenuto originale"
+        assert history[1].content == "original content"
         assert history[1].confidence == 0.9
 
     def test_update_with_content_uses_new_content(self, patched):
-        entity = patched.create_node("u1", NodeType.HYPOTHESIS, "originale", 0.7, "inizio")
+        entity = patched.create_node("u1", NodeType.HYPOTHESIS, "original", 0.7, "start")
         result = runner.invoke(app, [
             "update",
             "--node-id", entity.id,
-            "--content", "nuovo contenuto",
+            "--content", "new content",
             "--confidence", "0.5",
-            "--trigger", "cambio",
+            "--trigger", "change",
         ])
         assert result.exit_code == 0, result.output
         history = patched.get_node_history(entity.id)
-        assert history[1].content == "nuovo contenuto"
+        assert history[1].content == "new content"
 
 
 class TestLinkCommand:
@@ -62,13 +62,13 @@ class TestLinkCommand:
             "link",
             "--from", n1.id,
             "--to", n2.id,
-            "--type", "supporta",
+            "--type", "supports",
             "--confidence", "0.8",
         ])
         assert result.exit_code == 0, result.output
         graph = patched.get_graph("u1")
         assert len(graph["edges"]) == 1
-        assert graph["edges"][0].type == EdgeType.SUPPORTA
+        assert graph["edges"][0].type == EdgeType.SUPPORTS
 
     def test_link_output_shows_edge_id(self, patched):
         n1 = patched.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
@@ -77,7 +77,7 @@ class TestLinkCommand:
             "link",
             "--from", n1.id,
             "--to", n2.id,
-            "--type", "contraddice",
+            "--type", "contradicts",
             "--confidence", "0.6",
         ])
         assert result.exit_code == 0, result.output

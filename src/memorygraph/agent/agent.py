@@ -24,7 +24,7 @@ console = Console()
 
 
 class MemoryAgent:
-    """Memory Agent: estrae nodi candidati dal testo e li propone per approvazione."""
+    """Memory Agent: extracts candidate nodes from text and proposes them for approval."""
 
     def __init__(
         self,
@@ -68,7 +68,7 @@ class MemoryAgent:
         return states
 
     def extract(self, text: str, project_id: str | None = None) -> list[CandidateNode]:
-        """Chiama LLM → parsifica JSON → ritorna candidati non filtrati."""
+        """Call the LLM → parse JSON → return unfiltered candidates."""
         project_context = None
         if project_id:
             project = self._project_store.get_project(project_id, agent_context=True)
@@ -77,7 +77,7 @@ class MemoryAgent:
         return _extractor.extract(text, self._llm, project_context=project_context, project_id=project_id)
 
     def propose(self, text: str, project_id: str | None = None) -> list[ProposedNode]:
-        """extract → quality gate → contradiction detection → lista ProposedNode."""
+        """extract → quality gate → contradiction detection → list of ProposedNode."""
         candidates = self.extract(text, project_id)
         filtered = _quality.filter_candidates(candidates, self._min_confidence)
 
@@ -115,7 +115,7 @@ class MemoryAgent:
         project_id: str | None = None,
         user_id: str | None = None,
     ) -> list[str]:
-        """Esegue propose + loop di approvazione CLI → scrive nodi approvati → ritorna node_id[]."""
+        """Run propose + CLI approval loop → write approved nodes → return node_id[]."""
         if user_id is None:
             raise ValueError("user_id is required")
         proposals = self.propose(text, project_id)
@@ -152,7 +152,7 @@ class MemoryAgent:
                         self._store.create_edge(
                             node_id,
                             proposed.hint.existing_node_id,
-                            EdgeType.CONTRADDICE,
+                            EdgeType.CONTRADICTS,
                             1.0,
                         )
 

@@ -17,8 +17,8 @@ def test_node_type_values():
 
 
 def test_edge_type_values():
-    assert EdgeType.SUPPORTA.value == "supporta"
-    assert EdgeType.APRE_DOMANDA.value == "apre_domanda"
+    assert EdgeType.SUPPORTS.value == "supports"
+    assert EdgeType.OPENS_QUESTION.value == "opens_question"
 
 
 def test_node_entity_defaults():
@@ -50,7 +50,7 @@ def test_edge_defaults():
         edge_id="e1",
         from_node="n1",
         to_node="n2",
-        type=EdgeType.SUPPORTA,
+        type=EdgeType.SUPPORTS,
         confidence=0.9,
     )
     assert edge.invalidated_at is None
@@ -62,8 +62,8 @@ def test_node_type_from_str():
 
 
 def test_edge_type_from_str():
-    t = EdgeType("supporta")
-    assert t == EdgeType.SUPPORTA
+    t = EdgeType("supports")
+    assert t == EdgeType.SUPPORTS
 
 
 # ── Context Layer models ──────────────────────────────────────────────────────
@@ -88,8 +88,8 @@ def test_wiki_entity_defaults():
 
 def test_wiki_state_has_summary_not_trigger():
     now = datetime.now(timezone.utc)
-    s = WikiState(id="s1", wiki_id="w1", version=1, content="C", summary="Cosa è cambiato", created_at=now)
-    assert s.summary == "Cosa è cambiato"
+    s = WikiState(id="s1", wiki_id="w1", version=1, content="C", summary="What changed", created_at=now)
+    assert s.summary == "What changed"
     assert s.version == 1
 
 

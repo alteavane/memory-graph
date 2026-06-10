@@ -18,19 +18,19 @@ class TestMakeLlm:
             for k in env:
                 os.environ.pop(k, None)
             llm = make_llm()
-        result = llm("NodeType validi: test")
+        result = llm("Valid NodeTypes: test")
         assert "nodes" in result
 
     def test_explicit_anthropic_raises_without_package(self):
         with patch.dict(os.environ, {"MEMORYGRAPH_LLM_PROVIDER": "anthropic", "ANTHROPIC_API_KEY": "sk-test"}):
             with patch.dict("sys.modules", {"anthropic": None}):
-                with pytest.raises(RuntimeError, match="anthropic non installato"):
+                with pytest.raises(RuntimeError, match="anthropic is not installed"):
                     make_llm()
 
     def test_explicit_openai_raises_without_package(self):
         with patch.dict(os.environ, {"MEMORYGRAPH_LLM_PROVIDER": "openai", "OPENAI_API_KEY": "sk-test"}):
             with patch.dict("sys.modules", {"openai": None}):
-                with pytest.raises(RuntimeError, match="openai non installato"):
+                with pytest.raises(RuntimeError, match="openai is not installed"):
                     make_llm()
 
     def test_autodetect_anthropic_key(self):
@@ -65,7 +65,7 @@ class TestMakeLlm:
                     mock_ant.assert_not_called()
 
     def test_explicit_demo_provider(self):
-        """MEMORYGRAPH_LLM_PROVIDER=demo seleziona il provider di replay anche con chiavi presenti."""
+        """MEMORYGRAPH_LLM_PROVIDER=demo selects the replay provider even when keys are present."""
         with patch.dict(os.environ, {
             "MEMORYGRAPH_LLM_PROVIDER": "demo",
             "OPENAI_API_KEY": "sk-openai-test",
@@ -75,7 +75,7 @@ class TestMakeLlm:
         assert out["nodes"][0]["type"] == "Observation"
 
 
-# Prompt minimi che riproducono i marcatori usati dal router del provider demo.
+# Minimal prompts that reproduce the markers used by the demo provider's router.
 _EXTRACT_PROMPT = "You are a belief extractor. Valid NodeTypes: ...\nText:\n{text}"
 _DETECT_PROMPT = (
     "You are a contradiction detector in a knowledge graph.\n"
@@ -102,7 +102,7 @@ class TestDemoLlm:
         assert out["nodes"][0]["content"].startswith("The spike RBD")
 
     def test_extract_unknown_text_empty(self):
-        out = json.loads(self._demo()(_EXTRACT_PROMPT.replace("{text}", "qualcosa di ignoto")))
+        out = json.loads(self._demo()(_EXTRACT_PROMPT.replace("{text}", "something unknown")))
         assert out["nodes"] == []
 
     def test_detect_resolves_existing_id_from_prompt(self):
@@ -110,8 +110,8 @@ class TestDemoLlm:
         assert out["contradiction"] is True
         assert out["node_id"] == "11111111-1111-1111-1111-111111111111"
 
-    def test_link_apre_domanda_from_new_hypothesis(self):
+    def test_link_opens_question_from_new_hypothesis(self):
         out = json.loads(self._demo()(_LINK_PROMPT))
-        assert out["edges"][0]["type"] == "apre_domanda"
+        assert out["edges"][0]["type"] == "opens_question"
         assert out["edges"][0]["from"] == "22222222-2222-2222-2222-222222222222"
         assert out["edges"][0]["to"] == "33333333-3333-3333-3333-333333333333"

@@ -19,17 +19,17 @@ class NodeType(str, Enum):
 
 
 class EdgeType(str, Enum):
-    SUPPORTA = "supporta"
-    CONTRADDICE = "contraddice"
-    DERIVA_DA = "deriva_da"
-    FALSIFICA = "falsifica"
-    APRE_DOMANDA = "apre_domanda"
-    RISOLVE = "risolve"
+    SUPPORTS = "supports"
+    CONTRADICTS = "contradicts"
+    DERIVES_FROM = "derives_from"
+    FALSIFIES = "falsifies"
+    OPENS_QUESTION = "opens_question"
+    RESOLVES = "resolves"
 
 
 @dataclass
 class NodeEntity:
-    """Un'unità epistemica nel grafo — immutabile come identità, aggiornabile come stato."""
+    """An epistemic unit in the graph — immutable as identity, updatable as state."""
 
     id: str
     user_id: str
@@ -40,7 +40,7 @@ class NodeEntity:
 
 @dataclass
 class NodeState:
-    """Una credenza catturata in un momento nel tempo. Mai modificata — solo aggiunta."""
+    """A belief captured at a moment in time. Never modified — only appended."""
 
     id: str
     node_id: str
@@ -53,7 +53,7 @@ class NodeState:
 
 @dataclass
 class Edge:
-    """Relazione tipizzata tra due nodi. Invalidata con timestamp, mai cancellata."""
+    """A typed relationship between two nodes. Invalidated with a timestamp, never deleted."""
 
     edge_id: str
     from_node: str
@@ -65,21 +65,21 @@ class Edge:
 
 @dataclass
 class Project:
-    """Contenitore della ricerca. full_context è privato — solo agente."""
+    """Research container. full_context is private — agent only."""
 
     id: str
     user_id: str
     title: str
     objective: str
     summary: str
-    full_context: str    # mai serializzare in output pubblico o SubgraphToken
+    full_context: str    # never serialize into public output or a SubgraphToken
     created_at: datetime
     updated_at: datetime
 
 
 @dataclass
 class WikiEntity:
-    """Identità stabile di una pagina Wiki. Il titolo non cambia tra versioni."""
+    """Stable identity of a Wiki page. The title does not change across versions."""
 
     id: str
     user_id: str
@@ -91,10 +91,10 @@ class WikiEntity:
 
 @dataclass
 class WikiState:
-    """Una versione del contenuto di una WikiPage. summary ≠ trigger — descrive il cambiamento."""
+    """A version of a WikiPage's content. summary ≠ trigger — it describes the change."""
 
     id: str
-    wiki_id: str      # FK logico → WikiEntity (non in Kuzu, popolato dalla query)
+    wiki_id: str      # logical FK → WikiEntity (not in Kuzu, populated by the query)
     version: int
     content: str
     summary: str
@@ -103,13 +103,13 @@ class WikiState:
 
 @dataclass
 class DocumentIndex:
-    """Ancora al mondo esterno — paper, dataset, protocollo."""
+    """Anchor to the external world — paper, dataset, protocol."""
 
     id: str
     user_id: str
     title: str
     doi: str | None
     url: str | None
-    authors: str | None    # comma-separated, es. "Rossi M, Bianchi A"
+    authors: str | None    # comma-separated, e.g. "Rossi M, Bianchi A"
     pub_date: str | None   # YYYY-MM-DD
     created_at: datetime

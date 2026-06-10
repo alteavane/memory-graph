@@ -16,9 +16,9 @@ class TestCreateNode:
         entity = store.create_node(
             user_id="user1",
             type=NodeType.HYPOTHESIS,
-            content="Il pH influenza il legame proteico",
+            content="pH affects protein binding",
             confidence=0.7,
-            trigger="Osservazione esperimento #3",
+            trigger="Observation from experiment #3",
         )
         assert entity.id is not None
         assert entity.user_id == "user1"
@@ -26,11 +26,11 @@ class TestCreateNode:
         assert entity.is_deleted is False
 
     def test_creates_first_state_version_1(self, store):
-        entity = store.create_node("u1", NodeType.OBSERVATION, "contenuto", 0.5, "trigger")
+        entity = store.create_node("u1", NodeType.OBSERVATION, "content", 0.5, "trigger")
         history = store.get_node_history(entity.id)
         assert len(history) == 1
         assert history[0].version == 1
-        assert history[0].content == "contenuto"
+        assert history[0].content == "content"
         assert history[0].confidence == 0.5
         assert history[0].trigger == "trigger"
 
@@ -43,7 +43,7 @@ class TestCreateNode:
 class TestUpdateNode:
     def test_increments_version(self, store):
         entity = store.create_node("u1", NodeType.HYPOTHESIS, "v1", 0.5, "t1")
-        state = store.update_node(entity.id, "v2", 0.7, "nuova evidenza")
+        state = store.update_node(entity.id, "v2", 0.7, "new evidence")
         assert state.version == 2
         assert state.content == "v2"
         assert state.confidence == 0.7
@@ -109,18 +109,18 @@ class TestEdges:
     def test_create_edge_returns_edge(self, store):
         n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
         n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
-        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTS, 0.9)
         assert edge.edge_id is not None
         assert edge.from_node == n1.id
         assert edge.to_node == n2.id
-        assert edge.type == EdgeType.SUPPORTA
+        assert edge.type == EdgeType.SUPPORTS
         assert edge.confidence == 0.9
         assert edge.invalidated_at is None
 
     def test_create_edge_appears_in_graph(self, store):
         n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
         n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
-        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTS, 0.9)
         graph = store.get_graph("u1")
         assert len(graph["edges"]) == 1
         assert graph["edges"][0].edge_id == edge.edge_id
@@ -128,14 +128,14 @@ class TestEdges:
     def test_invalidate_edge_sets_timestamp(self, store):
         n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
         n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
-        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTS, 0.9)
         invalidated = store.invalidate_edge(edge.edge_id)
         assert invalidated.invalidated_at is not None
 
     def test_invalidated_edge_not_in_graph(self, store):
         n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
         n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
-        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTA, 0.9)
+        edge = store.create_edge(n1.id, n2.id, EdgeType.SUPPORTS, 0.9)
         store.invalidate_edge(edge.edge_id)
         graph = store.get_graph("u1")
         assert len(graph["edges"]) == 0
@@ -147,8 +147,8 @@ class TestEdges:
     def test_invalidate_preserves_edge_data(self, store):
         n1 = store.create_node("u1", NodeType.HYPOTHESIS, "A", 0.5, "t")
         n2 = store.create_node("u1", NodeType.OBSERVATION, "B", 0.8, "t")
-        edge = store.create_edge(n1.id, n2.id, EdgeType.CONTRADDICE, 0.75)
+        edge = store.create_edge(n1.id, n2.id, EdgeType.CONTRADICTS, 0.75)
         invalidated = store.invalidate_edge(edge.edge_id)
         assert invalidated.edge_id == edge.edge_id
-        assert invalidated.type == EdgeType.CONTRADDICE
+        assert invalidated.type == EdgeType.CONTRADICTS
         assert invalidated.confidence == 0.75
