@@ -41,3 +41,22 @@ class IdentityStore:
         if not result.has_next():
             return None
         return result.get_next()[0]
+
+    def get_identity(
+        self, user_id: str, *, include_private: bool = False
+    ) -> UserIdentity | None:
+        """Return the user's identity, or None. The private key is blank unless include_private=True."""
+        result = self._conn.execute(
+            "MATCH (i:UserIdentity) WHERE i.user_id = $uid "
+            "RETURN i.user_id, i.public_key, i.private_key, i.created_at",
+            {"uid": user_id},
+        )
+        if not result.has_next():
+            return None
+        row = result.get_next()
+        return UserIdentity(
+            user_id=row[0],
+            public_key=row[1],
+            private_key=row[2] if include_private else "",
+            created_at=row[3],
+        )

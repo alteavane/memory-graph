@@ -33,3 +33,24 @@ def test_create_identity_duplicate_raises(conn):
     store.create_identity("u1")
     with pytest.raises(ValueError, match="already exists"):
         store.create_identity("u1")
+
+
+def test_get_identity_missing_returns_none(conn):
+    assert IdentityStore(conn).get_identity("nobody") is None
+
+
+def test_get_identity_hides_private_by_default(conn):
+    store = IdentityStore(conn)
+    store.create_identity("u1")
+    identity = store.get_identity("u1")
+    assert identity is not None
+    assert identity.private_key == ""   # guardrail: never exposed by default
+    assert identity.public_key          # public part still present
+
+
+def test_get_identity_include_private_returns_private(conn):
+    store = IdentityStore(conn)
+    created = store.create_identity("u1")
+    identity = store.get_identity("u1", include_private=True)
+    assert identity is not None
+    assert identity.private_key == created.private_key
