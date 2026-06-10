@@ -109,3 +109,15 @@ def test_document_index_with_all_fields():
                       created_at=now)
     assert d.doi == "10.1000/xyz"
     assert d.authors == "Rossi M, Bianchi A"
+
+
+def test_user_identity_fields():
+    from memorygraph.graph.models import UserIdentity
+    now = datetime.now(timezone.utc)
+    identity = UserIdentity(
+        user_id="u1", public_key="pub", private_key="priv", created_at=now,
+    )
+    assert identity.user_id == "u1"
+    assert identity.public_key == "pub"
+    assert identity.private_key == "priv"
+    assert identity.created_at == now

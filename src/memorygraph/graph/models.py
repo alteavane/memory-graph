@@ -113,3 +113,13 @@ class DocumentIndex:
     authors: str | None    # comma-separated, e.g. "Rossi M, Bianchi A"
     pub_date: str | None   # YYYY-MM-DD
     created_at: datetime
+
+
+@dataclass
+class UserIdentity:
+    """Per-user Ed25519 identity. private_key is PRIVATE — never serialize it to public output."""
+
+    user_id: str
+    public_key: str
+    private_key: str   # PRIVATE — same rule as Project.full_context
+    created_at: datetime
