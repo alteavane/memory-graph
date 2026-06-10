@@ -81,4 +81,4 @@ class TestLinkCommand:
             "--confidence", "0.6",
         ])
         assert result.exit_code == 0, result.output
-        assert "Arco creato" in result.output
+        assert "Edge created" in result.output

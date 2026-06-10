@@ -117,26 +117,26 @@ class MemoryAgent:
     ) -> list[str]:
         """Esegue propose + loop di approvazione CLI → scrive nodi approvati → ritorna node_id[]."""
         if user_id is None:
-            raise ValueError("user_id è obbligatorio")
+            raise ValueError("user_id is required")
         proposals = self.propose(text, project_id)
         approved: list[str] = []
         total = len(proposals)
 
         for i, proposed in enumerate(proposals):
             c = proposed.candidate
-            console.print(f"\n[bold cyan][{i + 1}/{total}] Nodo candidato:[/bold cyan]")
-            console.print(f"  Tipo:       {c.type.value}")
-            console.print(f"  Contenuto:  {c.content}")
+            console.print(f"\n[bold cyan][{i + 1}/{total}] Candidate node:[/bold cyan]")
+            console.print(f"  Type:       {c.type.value}")
+            console.print(f"  Content:    {c.content}")
             console.print(f"  Confidence: {c.confidence:.2f}")
             console.print(f"  Trigger:    {c.trigger}")
             if proposed.hint:
                 console.print(
-                    f"  [yellow]⚠ Possibile contraddizione con nodo "
+                    f"  [yellow]⚠ Possible contradiction with node "
                     f"{proposed.hint.existing_node_id[:8]}:[/yellow]"
                 )
-                console.print(f'    "{proposed.hint.reason}" (rilevata dall\'agente)')
+                console.print(f'    "{proposed.hint.reason}" (detected by the agent)')
 
-            response = self._input_fn("Approva questo nodo? [y/n/s/a]: ").strip().lower()
+            response = self._input_fn("Approve this node? [y/n/s/a]: ").strip().lower()
 
             if response == "n":
                 continue
@@ -147,7 +147,7 @@ class MemoryAgent:
                 approved.append(node_id)
 
                 if proposed.hint:
-                    edge_resp = self._input_fn("Creare arco CONTRADDICE? [y/n]: ").strip().lower()
+                    edge_resp = self._input_fn("Create a contradiction edge? [y/n]: ").strip().lower()
                     if edge_resp == "y":
                         self._store.create_edge(
                             node_id,

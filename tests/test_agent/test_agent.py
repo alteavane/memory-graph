@@ -22,7 +22,7 @@ def _extractor_llm(prompt: str) -> str:
 
 def _no_contradiction_llm(prompt: str) -> str:
     """Mock LLM: estrae un nodo, non rileva contraddizioni."""
-    if "NodeType validi" in prompt:
+    if "Valid NodeTypes" in prompt:
         return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 è il recettore", "confidence": 0.7, "trigger": "paper Zhang"}]}'
     return '{"contradiction": false, "node_id": null, "reason": null}'
 
@@ -139,7 +139,7 @@ class TestMemoryAgentRunApproval:
             '{"type": "Hypothesis", "content": "H1", "confidence": 0.7, "trigger": "t"},'
             '{"type": "Observation", "content": "O1", "confidence": 0.9, "trigger": "t"}'
             ']}'
-            if "NodeType validi" in p else
+            if "Valid NodeTypes" in p else
             '{"contradiction": false, "node_id": null, "reason": null}'
         )
         responses = iter(["s"])
@@ -157,7 +157,7 @@ class TestMemoryAgentRunApproval:
             '{"type": "Hypothesis", "content": "H1", "confidence": 0.7, "trigger": "t"},'
             '{"type": "Observation", "content": "O1", "confidence": 0.9, "trigger": "t"}'
             ']}'
-            if "NodeType validi" in p else
+            if "Valid NodeTypes" in p else
             '{"contradiction": false, "node_id": null, "reason": null}'
         )
         responses = iter(["a"])
@@ -193,7 +193,7 @@ class TestMemoryAgentContradiction:
 
         # Smart LLM: extracts a node on first call, detects contradiction on second
         def smart_llm(prompt: str) -> str:
-            if "NodeType validi" in prompt:
+            if "Valid NodeTypes" in prompt:
                 return '{"nodes": [{"type": "Hypothesis", "content": "ACE2 è il recettore", "confidence": 0.8, "trigger": "paper"}]}'
             return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "Contraddice diretta"}}'
 
@@ -225,7 +225,7 @@ class TestMemoryAgentContradiction:
         )
 
         def smart_llm(prompt: str) -> str:
-            if "NodeType validi" in prompt:
+            if "Valid NodeTypes" in prompt:
                 return '{"nodes": [{"type": "Hypothesis", "content": "nuova tesi", "confidence": 0.8, "trigger": "t"}]}'
             return f'{{"contradiction": true, "node_id": "{existing.id}", "reason": "contraddice"}}'
 

@@ -237,14 +237,14 @@ def _enrich(
 
 
 def _render_table(proposed: list[ProposedEdge]) -> None:
-    table = Table(title=f"Archi candidati rilevati ({len(proposed)})", show_lines=True)
+    table = Table(title=f"Candidate edges detected ({len(proposed)})", show_lines=True)
     table.add_column("#", style="dim", width=3)
     table.add_column("✓", width=2)
-    table.add_column("Da", max_width=36)
-    table.add_column("Tipo", width=13)
-    table.add_column("A", max_width=36)
+    table.add_column("From", max_width=36)
+    table.add_column("Type", width=13)
+    table.add_column("To", max_width=36)
     table.add_column("Conf", width=5)
-    table.add_column("Motivo", max_width=36)
+    table.add_column("Reason", max_width=36)
 
     for i, p in enumerate(proposed, 1):
         check = "✓" if p.approved else " "
@@ -259,8 +259,8 @@ def _render_table(proposed: list[ProposedEdge]) -> None:
         )
     console.print(table)
     console.print(
-        "Comandi: [n <num>] deseleziona  [t <num> <tipo>] modifica tipo  "
-        "[c <num> <val>] modifica confidence  [y] approva  [N] annulla",
+        "Commands: [n <num>] deselect  [t <num> <type>] change type  "
+        "[c <num> <val>] change confidence  [y] approve  [N] cancel",
         markup=False,
         style="dim",
     )
@@ -294,7 +294,7 @@ def _interactive_loop(proposed: list[ProposedEdge], store: GraphStore) -> list[s
                 if 0 <= idx < len(proposed):
                     proposed[idx].edited_confidence = new_conf
         except (ValueError, IndexError):
-            console.print("[red]Comando non valido.[/red]")
+            console.print("[red]Invalid command.[/red]")
             continue
         _render_table(proposed)
 
@@ -309,5 +309,5 @@ def _interactive_loop(proposed: list[ProposedEdge], store: GraphStore) -> list[s
             )
             edge_ids.append(edge.edge_id)
     if edge_ids:
-        console.print(f"✓ Scritti {len(edge_ids)} archi.")
+        console.print(f"✓ Wrote {len(edge_ids)} edge(s).")
     return edge_ids

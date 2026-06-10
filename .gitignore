@@ -11,6 +11,10 @@ dist/
 htmlcov/
 .DS_Store
 .claude/
+
+# DB della demo VHS (il GIF finale invece va committato)
+data/demo.kuzu
 AGENTS.md
 CLAUDE-v0.1.md
-docs/**/.DS_Store
+openspec/
+docs/

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 from __future__ import annotations
 
+import json
 import os
 from unittest.mock import patch
 
@@ -62,3 +63,55 @@ class TestMakeLlm:
                     make_llm()
                     mock_oai.assert_called_once()
                     mock_ant.assert_not_called()
+
+    def test_explicit_demo_provider(self):
+        """MEMORYGRAPH_LLM_PROVIDER=demo seleziona il provider di replay anche con chiavi presenti."""
+        with patch.dict(os.environ, {
+            "MEMORYGRAPH_LLM_PROVIDER": "demo",
+            "OPENAI_API_KEY": "sk-openai-test",
+        }):
+            llm = make_llm()
+        out = json.loads(llm(_EXTRACT_PROMPT.replace("{text}", "Lan et al. 2020: high affinity")))
+        assert out["nodes"][0]["type"] == "Observation"
+
+
+# Prompt minimi che riproducono i marcatori usati dal router del provider demo.
+_EXTRACT_PROMPT = "You are a belief extractor. Valid NodeTypes: ...\nText:\n{text}"
+_DETECT_PROMPT = (
+    "You are a contradiction detector in a knowledge graph.\n"
+    "Candidate:\n  Content: Protonation of ACE2 histidine 34 reduces binding\n\n"
+    "Existing nodes in the project:\n"
+    "- id: 11111111-1111-1111-1111-111111111111 | RBD binds ACE2 with 10-20x higher affinity (confidence: 0.90)\n"
+)
+_LINK_PROMPT = (
+    "You are an analyst of scientific knowledge graphs.\n"
+    "Newly added nodes:\n"
+    '[id: 22222222-2222-2222-2222-222222222222] "Protonation of ACE2 histidine 34 ..."\n\n'
+    "Existing nodes in the graph:\n"
+    '[id: 33333333-3333-3333-3333-333333333333] (OpenQuestion, conf 0.55) "Does this mechanism apply to all variants?"\n'
+)
+
+
+class TestDemoLlm:
+    def _demo(self):
+        from memorygraph.llm.providers import _make_demo_llm
+        return _make_demo_llm()
+
+    def test_extract_known_text(self):
+        out = json.loads(self._demo()(_EXTRACT_PROMPT.replace("{text}", "Lan et al. 2020")))
+        assert out["nodes"][0]["content"].startswith("The spike RBD")
+
+    def test_extract_unknown_text_empty(self):
+        out = json.loads(self._demo()(_EXTRACT_PROMPT.replace("{text}", "qualcosa di ignoto")))
+        assert out["nodes"] == []
+
+    def test_detect_resolves_existing_id_from_prompt(self):
+        out = json.loads(self._demo()(_DETECT_PROMPT))
+        assert out["contradiction"] is True
+        assert out["node_id"] == "11111111-1111-1111-1111-111111111111"
+
+    def test_link_apre_domanda_from_new_hypothesis(self):
+        out = json.loads(self._demo()(_LINK_PROMPT))
+        assert out["edges"][0]["type"] == "apre_domanda"
+        assert out["edges"][0]["from"] == "22222222-2222-2222-2222-222222222222"
+        assert out["edges"][0]["to"] == "33333333-3333-3333-3333-333333333333"

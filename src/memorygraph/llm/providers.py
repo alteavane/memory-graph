@@ -3,7 +3,9 @@
 """LLM provider factories — LLM-agnostic, injectable via LLMCallable."""
 from __future__ import annotations
 
+import json
 import os
+import re
 
 from memorygraph.agent.extractor import LLMCallable
 
@@ -56,16 +58,106 @@ def _make_openai_llm() -> LLMCallable:
     return call
 
 
+_UUID_RE = re.compile(
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+)
+
+# Fixtures di estrazione: (substring riconosciuto nel testo) → nodi candidati.
+# Riproduce in modo deterministico lo scenario SARS-CoV-2 di demo/memorygraph-video-script.md.
+_DEMO_EXTRACTIONS: list[tuple[str, list[dict]]] = [
+    ("Lan et al", [
+        {"type": "Observation",
+         "content": "The spike RBD domain binds ACE2 with 10-20x higher affinity than SARS-CoV-1, with 17 contact residues at the interface.",
+         "confidence": 0.90, "trigger": "Lan et al. 2020 (Nature), crystal structure"},
+    ]),
+    ("histidine 34", [
+        {"type": "Hypothesis",
+         "content": "Protonation of ACE2 histidine 34 in the acidic endosome (pH 5.5-6.0) may reduce spike binding affinity, impairing viral entry.",
+         "confidence": 0.60, "trigger": "Structural reasoning"},
+        {"type": "OpenQuestion",
+         "content": "Does this mechanism apply to all SARS-CoV-2 variants?",
+         "confidence": 0.55, "trigger": "Raised alongside the pH hypothesis"},
+    ]),
+    ("catalytic site inhibitors", [
+        {"type": "DeadEnd",
+         "content": "Blocking the ACE2 catalytic site as an antiviral worsens lung damage via angiotensin II accumulation. Path closed.",
+         "confidence": 0.90, "trigger": "Three weeks of experiments"},
+    ]),
+    ("TMPRSS2", [
+        {"type": "Observation",
+         "content": "TMPRSS2 serine protease primes spike at the cell surface and bypasses the endosomal route; ACE2 alone is not sufficient and pH is not the limiting factor.",
+         "confidence": 0.88, "trigger": "Hoffmann et al. 2020 (Cell)"},
+    ]),
+]
+
+
+def _demo_extract(prompt: str) -> str:
+    for needle, nodes in _DEMO_EXTRACTIONS:
+        if needle in prompt:
+            return json.dumps({"nodes": nodes})
+    return '{"nodes": []}'
+
+
+def _id_for(block: str, keyword: str) -> str | None:
+    """Primo UUID che compare su una riga del blocco contenente ``keyword``."""
+    for line in block.splitlines():
+        if keyword in line:
+            m = _UUID_RE.search(line)
+            if m:
+                return m.group(0)
+    return None
+
+
+def _demo_detect(prompt: str) -> str:
+    # L'ipotesi pH contraddice l'osservazione sull'alta affinità RBD-ACE2.
+    candidate_part = prompt.split("Existing nodes")[0]
+    if "histidine 34" in candidate_part:
+        node_id = _id_for(prompt, "higher affinity")
+        if node_id:
+            return json.dumps({
+                "contradiction": True,
+                "node_id": node_id,
+                "reason": "The candidate claims protonation reduces binding affinity, "
+                          "while the existing node reports 10-20x higher affinity than SARS-CoV-1.",
+            })
+    return '{"contradiction": false, "node_id": null, "reason": null}'
+
+
+def _demo_link(prompt: str) -> str:
+    new_part, _, existing_part = prompt.partition("Existing nodes in the graph:")
+    edges: list[dict] = []
+
+    # apre_domanda: l'ipotesi (appena aggiunta) genera la open question sulle varianti
+    hyp_id = _id_for(new_part, "histidine 34")
+    oq_id = _id_for(prompt, "mechanism apply to all")
+    if hyp_id and oq_id:
+        edges.append({"from": hyp_id, "to": oq_id, "type": "apre_domanda",
+                      "confidence": 0.70, "reason": "The pH hypothesis raises a question about variants."})
+
+    # falsifica: l'osservazione TMPRSS2 (appena aggiunta) invalida l'ipotesi pH
+    tmprss2_id = _id_for(new_part, "TMPRSS2")
+    target_hyp_id = _id_for(prompt, "histidine 34")
+    if tmprss2_id and target_hyp_id:
+        edges.append({"from": tmprss2_id, "to": target_hyp_id, "type": "falsifica",
+                      "confidence": 0.85, "reason": "The TMPRSS2 surface pathway bypasses the endosome, so pH is not limiting."})
+
+    return json.dumps({"edges": edges})
+
+
 def _make_demo_llm() -> LLMCallable:
+    """LLM di replay deterministico per la demo — nessuna chiamata di rete.
+
+    Riconosce i tre tipi di prompt (estrazione, rilevamento contraddizioni,
+    proposta archi) e restituisce risposte fisse coerenti con lo scenario
+    SARS-CoV-2. Gli UUID dei nodi vengono risolti leggendoli dal prompt stesso,
+    quindi il flusso resta deterministico anche se gli ID cambiano a ogni run.
+    """
     def demo(prompt: str) -> str:
-        if "NodeType validi" in prompt:
-            return (
-                '{"nodes": [{"type": "Observation", '
-                '"content": "Testo inserito tramite CLI (demo LLM)", '
-                '"confidence": 0.5, '
-                '"trigger": "Inserito via agent-extract"}]}'
-            )
-        return '{"contradiction": false, "node_id": null, "reason": null}'
+        if "contradiction detector" in prompt:
+            return _demo_detect(prompt)
+        if "analyst of scientific knowledge graphs" in prompt:
+            return _demo_link(prompt)
+        return _demo_extract(prompt)
 
     return demo
 
@@ -80,6 +172,8 @@ def make_llm() -> LLMCallable:
     4. Nessuna chiave → demo (stub)
     """
     explicit = os.getenv(_PROVIDER_ENV, "").lower().strip()
+    if explicit == "demo":
+        return _make_demo_llm()
     if explicit == "anthropic":
         return _make_anthropic_llm()
     if explicit == "openai":
