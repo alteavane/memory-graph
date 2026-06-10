@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import base64
+import json
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -17,3 +18,14 @@ def generate_keypair() -> tuple[str, str]:
     private_b64 = base64.b64encode(private.private_bytes_raw()).decode("ascii")
     public_b64 = base64.b64encode(public.public_bytes_raw()).decode("ascii")
     return private_b64, public_b64
+
+
+def canonical_bytes(payload: dict) -> bytes:
+    """Deterministic serialization used as the signed message.
+
+    Sorted keys + compact separators so the bytes are stable across
+    processes and languages.
+    """
+    return json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
