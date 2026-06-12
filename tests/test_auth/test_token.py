@@ -96,3 +96,103 @@ def test_verify_token_accepts_at_exact_expiry():
     token = _signed_token(priv)  # expires_at = 2026-06-11T09:00:00
     result = verify_token(token, pub, now=datetime(2026, 6, 11, 9, 0, 0))
     assert result.ok is True
+
+
+from types import SimpleNamespace
+
+import kuzu
+import pytest
+
+from memorygraph.auth.consent import ConsentStore
+from memorygraph.auth.identity import IdentityStore
+from memorygraph.auth.schema import init_auth_schema
+from memorygraph.auth.token import build_token
+from memorygraph.context.project import ProjectStore
+from memorygraph.context.schema import init_context_schema
+from memorygraph.graph.models import NodeType
+from memorygraph.graph.store import GraphStore
+
+
+@pytest.fixture
+def stores(tmp_path):
+    graph = GraphStore(str(tmp_path / "t.kuzu"))
+    conn = graph._conn
+    init_context_schema(conn)
+    init_auth_schema(conn)
+    return SimpleNamespace(
+        graph=graph,
+        identity=IdentityStore(conn),
+        consent=ConsentStore(conn),
+        project=ProjectStore(conn),
+    )
+
+
+def test_build_token_materializes_and_signs(stores):
+    stores.identity.create_identity("anna")
+    proj = stores.project.create_project("anna", "T", "obj", "public summary", "SECRET ctx")
+    node = stores.graph.create_node("anna", NodeType.HYPOTHESIS, "pH matters", 0.6, "obs A")
+
+    token = build_token(
+        graph_store=stores.graph, identity_store=stores.identity,
+        consent_store=stores.consent, project_store=stores.project,
+        issuer_id="anna", recipient_id="bruno", project_id=proj.id,
+        node_ids=[{"id": node.id, "include_history": False}],
+        ttl_seconds=3600, now=datetime(2026, 6, 10, 9, 0, 0),
+    )
+
+    assert token.issuer_id == "anna"
+    assert token.recipient_id == "bruno"
+    assert token.project_summary == "public summary"
+    assert token.wiki_page_ids == []
+    assert token.expires_at == datetime(2026, 6, 10, 10, 0, 0)
+    assert len(token.nodes) == 1
+    entry = token.nodes[0]
+    assert entry["id"] == node.id
+    assert entry["type"] == "Hypothesis"
+    assert entry["states"][0]["content"] == "pH matters"
+    assert entry["states"][0]["trigger"] == ""  # default consent strips triggers
+    # signature verifies against the issuer's public key
+    pub = stores.identity.get_public_key("anna")
+    assert verify_token(token, pub, now=datetime(2026, 6, 10, 9, 30, 0)).ok is True
+
+
+def test_build_token_include_history_materializes_all_states(stores):
+    stores.identity.create_identity("anna")
+    proj = stores.project.create_project("anna", "T", "obj", "s", "ctx")
+    node = stores.graph.create_node("anna", NodeType.HYPOTHESIS, "v1", 0.6, "t1")
+    stores.graph.update_node(node.id, "v2", 0.35, "t2")
+
+    token = build_token(
+        graph_store=stores.graph, identity_store=stores.identity,
+        consent_store=stores.consent, project_store=stores.project,
+        issuer_id="anna", recipient_id="bruno", project_id=proj.id,
+        node_ids=[{"id": node.id, "include_history": True}],
+        ttl_seconds=3600, now=datetime(2026, 6, 10, 9, 0, 0),
+    )
+    versions = [s["version"] for s in token.nodes[0]["states"]]
+    assert versions == [1, 2]
+
+
+def test_build_token_rejects_foreign_node(stores):
+    stores.identity.create_identity("anna")
+    proj = stores.project.create_project("anna", "T", "obj", "s", "ctx")
+    bruno_node = stores.graph.create_node("bruno", NodeType.OBSERVATION, "his data", 0.9, "t")
+    with pytest.raises(ValueError, match="not found for issuer"):
+        build_token(
+            graph_store=stores.graph, identity_store=stores.identity,
+            consent_store=stores.consent, project_store=stores.project,
+            issuer_id="anna", recipient_id="bruno", project_id=proj.id,
+            node_ids=[{"id": bruno_node.id, "include_history": False}],
+            ttl_seconds=3600, now=datetime(2026, 6, 10, 9, 0, 0),
+        )
+
+
+def test_build_token_unknown_issuer_raises(stores):
+    proj = stores.project.create_project("anna", "T", "obj", "s", "ctx")
+    with pytest.raises(ValueError, match="no identity"):
+        build_token(
+            graph_store=stores.graph, identity_store=stores.identity,
+            consent_store=stores.consent, project_store=stores.project,
+            issuer_id="ghost", recipient_id="bruno", project_id=proj.id,
+            node_ids=[], ttl_seconds=3600, now=datetime(2026, 6, 10, 9, 0, 0),
+        )
