@@ -172,3 +172,17 @@ def test_get_shared_rejects_expired(tmp_path):
     token_id = _receive(recipient, token, pub)
     time.sleep(2)
     assert TestClient(recipient).get(f"/shared/{token_id}").status_code == 403
+
+
+def test_get_shared_missing_issuer_key_403(tmp_path):
+    # a token stored without registering the issuer's public key cannot be re-verified → 403
+    from memorygraph.auth.token import TokenStore, deserialize
+
+    issuer = _app(tmp_path, owner="anna", name="anna")
+    project_id, node_id = _seed_project_and_node(issuer, owner="anna")
+    token_str, _ = _issue_token_from(issuer, project_id, node_id)
+
+    recipient = _app(tmp_path, owner="bruno", name="bruno")
+    tok = deserialize(token_str)
+    recipient.state.manager.submit("bruno", lambda s: TokenStore(s._conn).save(tok))
+    assert TestClient(recipient).get(f"/shared/{tok.id}").status_code == 403
