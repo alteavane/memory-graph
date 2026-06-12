@@ -339,8 +339,17 @@ PatternType = Enum(
 - [x] CLI: `token-issue`, `token-verify`, `consent-show`, `consent-set` (naive-UTC clock throughout)
 - [x] Test coverage: auth module 98% (`token.py` 100%)
 
-### ⏳ Phase 3c — REST API
-- `WriterManager` (process-per-user), FastAPI endpoints, two-instance integration test
+### ✅ Phase 3c — REST API (COMPLETED)
+- [x] Federated deployment: one instance per user (one writer per instance) — `docs/superpowers/specs/2026-06-12-phase-3c-rest-api-design.md`
+- [x] `WriterManager` (`api/writer.py`) — in-process, lazy `user_id→GraphStore`, per-user lock; sole Kuzu constructor; every DB touch (reads too) goes through `submit()`
+- [x] Pydantic schemas (`api/schemas.py`) + app factory `create_app(owner_id, db_path)` (`api/app.py`, auto-provisions owner identity)
+- [x] 5 endpoints: `GET /identity/{id}`, `GET|PUT /consent`, `POST /tokens`, `POST /inbox/tokens`, `GET /shared/{id}`
+- [x] `IdentityStore.register_peer` — public-key-only upsert so `/shared` re-verifies offline
+- [x] Read-only `/shared`: returns only token-embedded content; 403 tampered/expired, 404 unknown
+- [x] §8 guardrails over HTTP + two-instance integration test (in-process, two FastAPI apps + TestClient)
+- [x] `GraphStore.close()` / `WriterManager.close()` + GC sweep — bound Kuzu mmap reservations across tests
+- [x] README Phase 3/4 boundary realigned (fork import → Phase 4)
+- [x] Test coverage: `api/` 100%, auth module 100% (except schema idempotency branch)
 
 ### ⏳ Phase 4 — Fork/Merge Engine
 - TrajectoryPattern, embedding, cross-user matching, MergeProposal
@@ -473,5 +482,5 @@ The agent uses `full_context` to reconstruct the complete narrative.
 
 ---
 
-*Last modified: June 2026 — RFC v0.2 — Phase 3b complete*
+*Last modified: June 2026 — RFC v0.2 — Phase 3c complete*
 *Update this file at every change of roadmap status.*

@@ -259,12 +259,12 @@ Rilevamento delle contraddizioni
 
 **Fase 3 — Protocollo di condivisione**
 Generazione del SubgraphToken · Firma e scadenza ·
-Fork import nel grafo isolato · UserNetworkConsent ·
-REST API di base tra due istanze
+UserNetworkConsent · REST API tra due istanze ·
+Vista read-only di un subgraph condiviso e verificato
 
-**Fase 4 — Pattern matching**
-Calcolo del TrajectoryPattern · Embedding semantici ·
-Ricerca pattern cross-utente con verifica del consenso ·
+**Fase 4 — Pattern matching & fork/merge**
+Fork import nel grafo isolato · Calcolo del TrajectoryPattern ·
+Embedding semantici · Ricerca pattern cross-utente con verifica del consenso ·
 MergeProposal con diff semantico ·
 Suggerimenti di match da parte dell'agente
 

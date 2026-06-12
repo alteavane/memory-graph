@@ -259,12 +259,12 @@ Contradiction detection
 
 **Phase 3 — Sharing protocol**
 SubgraphToken generation · Signature and expiry ·
-Fork import into isolated graph · UserNetworkConsent ·
-Basic REST API between two instances
+UserNetworkConsent · REST API between two instances ·
+Read-only view of a verified shared subgraph
 
-**Phase 4 — Pattern matching**
-TrajectoryPattern computation · Semantic embeddings ·
-Cross-user pattern search with consent check ·
+**Phase 4 — Pattern matching & fork/merge**
+Fork import into isolated graph · TrajectoryPattern computation ·
+Semantic embeddings · Cross-user pattern search with consent check ·
 MergeProposal with semantic diff ·
 Agent-initiated match suggestions
 
