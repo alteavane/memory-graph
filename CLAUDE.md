@@ -320,10 +320,27 @@ PatternType = Enum(
 - [x] Shared GraphStore — avoids a double Kuzu connection
 - [x] Test coverage ≥ 80% (link_agent.py 88%, total 94%)
 
-### ⏳ Phase 3 — Auth & Consent Layer
-- SubgraphToken with `project_summary` snapshot
-- `wiki_page_ids` selection UI
-- UserNetworkConsent, REST API
+### ✅ Phase 3a — Identity Layer (COMPLETED)
+- [x] Ed25519 keypair generation + deterministic canonical signing (`auth/crypto.py`)
+- [x] `UserIdentity` dataclass + Kuzu table
+- [x] `IdentityStore.create_identity` / `get_identity` (private key hidden by default) / `get_public_key`
+- [x] CLI: `identity-create`, `identity-show`
+
+### ✅ Phase 3b — SubgraphToken + Consent (COMPLETED)
+- [x] `SubgraphToken` + `UserNetworkConsent` dataclasses + Kuzu tables
+- [x] `ConsentStore` (get/set, all-false defaults = max privacy, partial upsert)
+- [x] `build_token` — materializes selected node states, snapshots `project_summary`,
+      applies consent (DeadEnd excluded + triggers stripped when not consented), Ed25519-signs
+- [x] **Decision A**: token embeds materialized content in `node_ids` JSON → offline cross-instance verification
+- [x] `serialize` / `deserialize` (deterministic JSON) + `verify_token` (expiry + signature, never raises)
+- [x] `TokenStore` persist/retrieve
+- [x] §8 invariant guardrails: `full_context`/`private_key` never serialized, frozen summary snapshot,
+      `wiki_page_ids` empty by default, consent enforced on DeadEnds/triggers
+- [x] CLI: `token-issue`, `token-verify`, `consent-show`, `consent-set` (naive-UTC clock throughout)
+- [x] Test coverage: auth module 98% (`token.py` 100%)
+
+### ⏳ Phase 3c — REST API
+- `WriterManager` (process-per-user), FastAPI endpoints, two-instance integration test
 
 ### ⏳ Phase 4 — Fork/Merge Engine
 - TrajectoryPattern, embedding, cross-user matching, MergeProposal
@@ -456,5 +473,5 @@ The agent uses `full_context` to reconstruct the complete narrative.
 
 ---
 
-*Last modified: May 2026 — RFC v0.2 — Phase 2b complete*
+*Last modified: June 2026 — RFC v0.2 — Phase 3b complete*
 *Update this file at every change of roadmap status.*
