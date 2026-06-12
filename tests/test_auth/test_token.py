@@ -229,3 +229,23 @@ def test_token_store_save_and_get_roundtrip(stores, tmp_path):
 def test_token_store_get_missing_returns_none(stores):
     token_store = TokenStore(stores.graph._conn)
     assert token_store.get("nope") is None
+
+
+def test_verify_token_handles_none_public_key():
+    priv, _ = generate_keypair()
+    token = _signed_token(priv)
+    # None public key makes crypto raise TypeError → caught, reported as bad_signature
+    result = verify_token(token, None, now=datetime(2026, 6, 10, 12, 0, 0))
+    assert result.ok is False
+    assert result.reason == "bad_signature"
+
+
+def test_build_token_unknown_project_raises(stores):
+    stores.identity.create_identity("anna")
+    with pytest.raises(ValueError, match="not found"):
+        build_token(
+            graph_store=stores.graph, identity_store=stores.identity,
+            consent_store=stores.consent, project_store=stores.project,
+            issuer_id="anna", recipient_id="bruno", project_id="ghost-project",
+            node_ids=[], ttl_seconds=3600, now=datetime(2026, 6, 10, 9, 0, 0),
+        )
