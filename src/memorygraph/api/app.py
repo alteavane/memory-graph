@@ -16,13 +16,15 @@ from memorygraph.api.schemas import (
     ConsentResponse,
     ConsentUpdate,
     IdentityResponse,
+    InboxRequest,
+    InboxResponse,
     TokenIssueRequest,
     TokenIssueResponse,
 )
 from memorygraph.api.writer import WriterManager
 from memorygraph.auth.consent import ConsentStore
 from memorygraph.auth.identity import IdentityStore
-from memorygraph.auth.token import TokenStore, build_token, serialize
+from memorygraph.auth.token import TokenStore, build_token, deserialize, serialize, verify_token
 from memorygraph.context.project import ProjectStore
 from memorygraph.graph.store import GraphStore
 
@@ -121,6 +123,26 @@ def create_app(owner_id: str, db_path: str) -> FastAPI:
                 raise HTTPException(status_code=404, detail=str(exc)) from exc
             b.token.save(token)
             return TokenIssueResponse(token_id=token.id, token=serialize(token))
+
+        return manager.submit(owner_id, op)
+
+    @app.post("/inbox/tokens", response_model=InboxResponse, status_code=201)
+    def post_inbox(req: InboxRequest) -> InboxResponse:
+        """Receive a token from another instance: verify signature+expiry, register the
+        issuer's public key locally, and store the token. 422 if it does not verify."""
+        try:
+            token = deserialize(req.token)
+        except (ValueError, KeyError) as exc:
+            raise HTTPException(status_code=422, detail="malformed token") from exc
+        result = verify_token(token, req.issuer_public_key, now=_utc_now())
+        if not result.ok:
+            raise HTTPException(status_code=422, detail=f"token {result.reason}")
+
+        def op(store: GraphStore) -> InboxResponse:
+            b = _bundle(store)
+            b.identity.register_peer(token.issuer_id, req.issuer_public_key)
+            b.token.save(token)
+            return InboxResponse(token_id=token.id)
 
         return manager.submit(owner_id, op)
 

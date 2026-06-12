@@ -90,3 +90,39 @@ def test_post_tokens_unknown_node_is_rejected(tmp_path):
         "ttl_seconds": 3600,
     })
     assert resp.status_code == 404
+
+
+def _issue_token_from(app, project_id, node_id, recipient="bruno"):
+    """Issue a token on `app` and return (serialized_token, issuer_public_key)."""
+    client = TestClient(app)
+    token = client.post("/tokens", json={
+        "recipient_id": recipient, "project_id": project_id,
+        "node_ids": [{"id": node_id, "include_history": False}],
+        "ttl_seconds": 3600,
+    }).json()["token"]
+    pub = client.get("/identity/anna").json()["public_key"]
+    return token, pub
+
+
+def test_post_inbox_accepts_valid_token(tmp_path):
+    issuer = _app(tmp_path, owner="anna", name="anna")
+    project_id, node_id = _seed_project_and_node(issuer, owner="anna")
+    token, pub = _issue_token_from(issuer, project_id, node_id)
+
+    recipient = _app(tmp_path, owner="bruno", name="bruno")
+    rclient = TestClient(recipient)
+    resp = rclient.post("/inbox/tokens", json={"token": token, "issuer_public_key": pub})
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["token_id"]
+
+
+def test_post_inbox_rejects_tampered_token(tmp_path):
+    issuer = _app(tmp_path, owner="anna", name="anna")
+    project_id, node_id = _seed_project_and_node(issuer, owner="anna")
+    token, pub = _issue_token_from(issuer, project_id, node_id)
+    tampered = token.replace("public summary", "tampered summary")
+
+    recipient = _app(tmp_path, owner="bruno", name="bruno")
+    rclient = TestClient(recipient)
+    resp = rclient.post("/inbox/tokens", json={"token": tampered, "issuer_public_key": pub})
+    assert resp.status_code == 422
