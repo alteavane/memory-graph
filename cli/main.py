@@ -16,8 +16,14 @@ from memorygraph.graph.store import GraphStore
 from memorygraph.context import ContextStore
 from memorygraph.agent.agent import MemoryAgent
 from memorygraph.llm import make_llm
+from types import SimpleNamespace
+
 from memorygraph.auth.identity import IdentityStore
 from memorygraph.auth.schema import init_auth_schema
+from memorygraph.auth.consent import ConsentStore
+from memorygraph.auth.token import TokenStore, build_token, deserialize, serialize, verify_token
+from memorygraph.context.project import ProjectStore
+from memorygraph.context.schema import init_context_schema
 
 app = typer.Typer(help="MemoryGraph CLI - personal belief-based graph store.")
 console = Console()
@@ -35,6 +41,21 @@ def _get_identity_store() -> IdentityStore:
     store = GraphStore(DB_PATH)
     init_auth_schema(store._conn)
     return IdentityStore(store._conn)
+
+
+def _get_auth_bundle() -> SimpleNamespace:
+    """One GraphStore connection, all auth/context stores sharing it (single-writer per process)."""
+    store = GraphStore(DB_PATH)
+    conn = store._conn
+    init_context_schema(conn)
+    init_auth_schema(conn)
+    return SimpleNamespace(
+        graph=store,
+        identity=IdentityStore(conn),
+        consent=ConsentStore(conn),
+        project=ProjectStore(conn),
+        token=TokenStore(conn),
+    )
 
 
 def _fmt_ts(dt: datetime | None) -> str:
@@ -342,6 +363,41 @@ def identity_show(
         console.print(f"[red]No identity found for {user_id}[/red]")
         raise typer.Exit(code=1)
     console.print(f"Public key for [bold]{user_id}[/bold]: {public_key}")
+
+
+@app.command(name="consent-show")
+def consent_show(
+    user_id: str = typer.Option(..., help="User ID"),
+) -> None:
+    """Show a user's network-sharing consent flags."""
+    bundle = _get_auth_bundle()
+    consent = bundle.consent.get_consent(user_id)
+    console.print(f"[bold]Consent for {user_id}[/bold]")
+    console.print(f"  discoverable:   {consent.discoverable}")
+    console.print(f"  share_deadends: {consent.share_deadends}")
+    console.print(f"  share_triggers: {consent.share_triggers}")
+    console.print(f"  auto_propose:   {consent.auto_propose}")
+
+
+@app.command(name="consent-set")
+def consent_set(
+    user_id: str = typer.Option(..., help="User ID"),
+    discoverable: bool | None = typer.Option(None, "--discoverable/--no-discoverable"),
+    share_deadends: bool | None = typer.Option(None, "--share-deadends/--no-share-deadends"),
+    share_triggers: bool | None = typer.Option(None, "--share-triggers/--no-share-triggers"),
+    auto_propose: bool | None = typer.Option(None, "--auto-propose/--no-auto-propose"),
+) -> None:
+    """Update one or more consent flags (unspecified flags keep their current value)."""
+    bundle = _get_auth_bundle()
+    consent = bundle.consent.set_consent(
+        user_id, discoverable=discoverable, share_deadends=share_deadends,
+        share_triggers=share_triggers, auto_propose=auto_propose,
+    )
+    console.print(f"[green]✓[/green] Consent updated for [bold]{user_id}[/bold]")
+    console.print(f"  discoverable:   {consent.discoverable}")
+    console.print(f"  share_deadends: {consent.share_deadends}")
+    console.print(f"  share_triggers: {consent.share_triggers}")
+    console.print(f"  auto_propose:   {consent.auto_propose}")
 
 
 if __name__ == "__main__":

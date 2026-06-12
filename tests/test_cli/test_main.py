@@ -121,3 +121,40 @@ class TestIdentityCommands:
         with patch("cli.main._get_identity_store", return_value=IdentityStore(c)):
             result = runner.invoke(app, ["identity-show", "--user-id", "ghost"])
         assert result.exit_code == 1
+
+
+class TestConsentCommands:
+    def _bundle(self, tmp_path):
+        import kuzu
+        from types import SimpleNamespace
+
+        from memorygraph.auth.consent import ConsentStore
+        from memorygraph.auth.identity import IdentityStore
+        from memorygraph.auth.schema import init_auth_schema
+        from memorygraph.auth.token import TokenStore
+        from memorygraph.context.project import ProjectStore
+        from memorygraph.context.schema import init_context_schema
+        from memorygraph.graph.schema import init_schema
+
+        db = kuzu.Database(str(tmp_path / "auth.kuzu"))
+        c = kuzu.Connection(db)
+        init_schema(c)
+        init_context_schema(c)
+        init_auth_schema(c)
+        return SimpleNamespace(
+            conn=c,
+            identity=IdentityStore(c), consent=ConsentStore(c),
+            project=ProjectStore(c), token=TokenStore(c),
+        )
+
+    def test_consent_set_then_show(self, tmp_path):
+        bundle = self._bundle(tmp_path)
+        with patch("cli.main._get_auth_bundle", return_value=bundle):
+            set_result = runner.invoke(app, [
+                "consent-set", "--user-id", "u1", "--share-deadends",
+            ])
+            show_result = runner.invoke(app, ["consent-show", "--user-id", "u1"])
+        assert set_result.exit_code == 0, set_result.output
+        assert show_result.exit_code == 0, show_result.output
+        assert "share_deadends" in show_result.output
+        assert "True" in show_result.output
