@@ -1,0 +1,185 @@
+# Copyright (C) 2026 AlteaVane
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""FastAPI app factory + endpoints for the federated Phase 3c REST API.
+
+One instance serves one owner. Every DB touch goes through the WriterManager so
+the single Kuzu connection is never used concurrently.
+"""
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from types import SimpleNamespace
+
+from fastapi import FastAPI, HTTPException
+
+from memorygraph.api.schemas import (
+    ConsentResponse,
+    ConsentUpdate,
+    IdentityResponse,
+    InboxRequest,
+    InboxResponse,
+    SharedResponse,
+    TokenIssueRequest,
+    TokenIssueResponse,
+)
+from memorygraph.api.writer import WriterManager
+from memorygraph.auth.consent import ConsentStore
+from memorygraph.auth.identity import IdentityStore
+from memorygraph.auth.token import TokenStore, build_token, deserialize, serialize, verify_token
+from memorygraph.context.project import ProjectStore
+from memorygraph.graph.store import GraphStore
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _bundle(store: GraphStore) -> SimpleNamespace:
+    """Build all stores for an owner from a single GraphStore connection."""
+    conn = store._conn
+    return SimpleNamespace(
+        graph=store,
+        identity=IdentityStore(conn),
+        consent=ConsentStore(conn),
+        project=ProjectStore(conn),
+        token=TokenStore(conn),
+    )
+
+
+def create_app(owner_id: str, db_path: str) -> FastAPI:
+    """Build a FastAPI app for one owner. Auto-provisions the owner's identity."""
+    manager = WriterManager(lambda _uid: db_path)
+
+    def _ensure_identity(store: GraphStore) -> None:
+        identity = IdentityStore(store._conn)
+        if identity.get_public_key(owner_id) is None:
+            identity.create_identity(owner_id)
+
+    manager.submit(owner_id, _ensure_identity)
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        yield
+        manager.close()  # release Kuzu connections deterministically on shutdown
+
+    app = FastAPI(title="MemoryGraph instance API", lifespan=lifespan)
+    app.state.owner_id = owner_id
+    app.state.manager = manager
+
+    @app.get("/identity/{user_id}", response_model=IdentityResponse)
+    def get_identity(user_id: str) -> IdentityResponse:
+        """Return a user's Ed25519 public key (public endpoint). 404 if unknown."""
+        public_key = manager.submit(
+            owner_id, lambda s: _bundle(s).identity.get_public_key(user_id)
+        )
+        if public_key is None:
+            raise HTTPException(status_code=404, detail=f"no identity for {user_id}")
+        return IdentityResponse(user_id=user_id, public_key=public_key)
+
+    def _consent_response(store: GraphStore) -> ConsentResponse:
+        consent = _bundle(store).consent.get_consent(owner_id)
+        return ConsentResponse(
+            discoverable=consent.discoverable,
+            share_deadends=consent.share_deadends,
+            share_triggers=consent.share_triggers,
+            auto_propose=consent.auto_propose,
+        )
+
+    @app.get("/consent", response_model=ConsentResponse)
+    def get_consent() -> ConsentResponse:
+        """Read the owner's network-sharing consent flags."""
+        return manager.submit(owner_id, _consent_response)
+
+    @app.put("/consent", response_model=ConsentResponse)
+    def put_consent(update: ConsentUpdate) -> ConsentResponse:
+        """Update one or more of the owner's consent flags (omitted flags unchanged)."""
+
+        def op(store: GraphStore) -> ConsentResponse:
+            _bundle(store).consent.set_consent(
+                owner_id,
+                discoverable=update.discoverable,
+                share_deadends=update.share_deadends,
+                share_triggers=update.share_triggers,
+                auto_propose=update.auto_propose,
+            )
+            return _consent_response(store)
+
+        return manager.submit(owner_id, op)
+
+    @app.post("/tokens", response_model=TokenIssueResponse)
+    def post_tokens(req: TokenIssueRequest) -> TokenIssueResponse:
+        """Build + sign a SubgraphToken for a recipient (issuer = owner) and persist it."""
+
+        def op(store: GraphStore) -> TokenIssueResponse:
+            b = _bundle(store)
+            selection = [
+                {"id": sel.id, "include_history": sel.include_history}
+                for sel in req.node_ids
+            ]
+            try:
+                token = build_token(
+                    graph_store=b.graph, identity_store=b.identity,
+                    consent_store=b.consent, project_store=b.project,
+                    issuer_id=owner_id, recipient_id=req.recipient_id,
+                    project_id=req.project_id, node_ids=selection,
+                    wiki_page_ids=req.wiki_page_ids, forkable=req.forkable,
+                    ttl_seconds=req.ttl_seconds, now=_utc_now(),
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            b.token.save(token)
+            return TokenIssueResponse(token_id=token.id, token=serialize(token))
+
+        return manager.submit(owner_id, op)
+
+    @app.post("/inbox/tokens", response_model=InboxResponse, status_code=201)
+    def post_inbox(req: InboxRequest) -> InboxResponse:
+        """Receive a token from another instance: verify signature+expiry, register the
+        issuer's public key locally, and store the token. 422 if it does not verify."""
+        try:
+            token = deserialize(req.token)
+        except (ValueError, KeyError) as exc:
+            raise HTTPException(status_code=422, detail="malformed token") from exc
+        result = verify_token(token, req.issuer_public_key, now=_utc_now())
+        if not result.ok:
+            raise HTTPException(status_code=422, detail=f"token {result.reason}")
+
+        def op(store: GraphStore) -> InboxResponse:
+            b = _bundle(store)
+            b.identity.register_peer(token.issuer_id, req.issuer_public_key)
+            b.token.save(token)
+            return InboxResponse(token_id=token.id)
+
+        return manager.submit(owner_id, op)
+
+    @app.get("/shared/{token_id}", response_model=SharedResponse)
+    def get_shared(token_id: str) -> SharedResponse:
+        """Read-only view of a stored, re-verified shared subgraph.
+
+        404 if the token is unknown; 403 if its signature or expiry no longer verify.
+        Returns only what the token embeds — never reads the local graph.
+        """
+
+        def load(store: GraphStore) -> tuple[object | None, str | None]:
+            b = _bundle(store)
+            token = b.token.get(token_id)
+            if token is None:
+                return None, None
+            issuer_pub = b.identity.get_public_key(token.issuer_id)
+            return token, issuer_pub
+
+        token, issuer_pub = manager.submit(owner_id, load)
+        if token is None:
+            raise HTTPException(status_code=404, detail=f"no token {token_id}")
+        if issuer_pub is None or not verify_token(token, issuer_pub, now=_utc_now()).ok:
+            raise HTTPException(status_code=403, detail="token does not verify")
+        return SharedResponse(
+            issuer_id=token.issuer_id,
+            project_summary=token.project_summary,
+            wiki_page_ids=list(token.wiki_page_ids),
+            nodes=token.nodes,
+        )
+
+    return app

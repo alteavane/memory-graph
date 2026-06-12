@@ -60,3 +60,23 @@ class IdentityStore:
             private_key=row[2] if include_private else "",
             created_at=row[3],
         )
+
+    def register_peer(self, user_id: str, public_key: str) -> None:
+        """Store a remote peer's public key (no private key). Idempotent upsert.
+
+        Used when receiving a token from another instance, so the recipient can
+        re-verify the issuer's signature offline later.
+        """
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if self.get_public_key(user_id) is None:
+            self._conn.execute(
+                "CREATE (i:UserIdentity {user_id: $uid, public_key: $pub, "
+                "private_key: '', created_at: $ts})",
+                {"uid": user_id, "pub": public_key, "ts": now},
+            )
+        else:
+            self._conn.execute(
+                "MATCH (i:UserIdentity) WHERE i.user_id = $uid "
+                "SET i.public_key = $pub",
+                {"uid": user_id, "pub": public_key},
+            )

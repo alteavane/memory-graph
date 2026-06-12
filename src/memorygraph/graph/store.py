@@ -199,3 +199,8 @@ class GraphStore:
                 content=row[2], confidence=row[3], trigger=row[4], created_at=row[5],
             ))
         return states
+
+    def close(self) -> None:
+        """Close the Kuzu connection and database, releasing the file lock and mmap reservation."""
+        self._conn.close()
+        self._db.close()
