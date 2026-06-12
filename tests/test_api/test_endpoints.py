@@ -126,3 +126,49 @@ def test_post_inbox_rejects_tampered_token(tmp_path):
     rclient = TestClient(recipient)
     resp = rclient.post("/inbox/tokens", json={"token": tampered, "issuer_public_key": pub})
     assert resp.status_code == 422
+
+
+def _receive(recipient_app, token, pub):
+    return TestClient(recipient_app).post(
+        "/inbox/tokens", json={"token": token, "issuer_public_key": pub}
+    ).json()["token_id"]
+
+
+def test_get_shared_returns_verified_subgraph(tmp_path):
+    issuer = _app(tmp_path, owner="anna", name="anna")
+    project_id, node_id = _seed_project_and_node(issuer, owner="anna")
+    token, pub = _issue_token_from(issuer, project_id, node_id)
+    recipient = _app(tmp_path, owner="bruno", name="bruno")
+    token_id = _receive(recipient, token, pub)
+
+    resp = TestClient(recipient).get(f"/shared/{token_id}")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["issuer_id"] == "anna"
+    assert body["project_summary"] == "public summary"
+    assert body["wiki_page_ids"] == []
+    assert body["nodes"][0]["states"][0]["content"] == "pH matters"
+
+
+def test_get_shared_unknown_token_404(tmp_path):
+    app = _app(tmp_path, owner="bruno", name="bruno")
+    assert TestClient(app).get("/shared/nope").status_code == 404
+
+
+def test_get_shared_rejects_expired(tmp_path):
+    # issue with a 1-second TTL, then the stored token is past expiry at read time
+    issuer = _app(tmp_path, owner="anna", name="anna")
+    project_id, node_id = _seed_project_and_node(issuer, owner="anna")
+    client = TestClient(issuer)
+    token = client.post("/tokens", json={
+        "recipient_id": "bruno", "project_id": project_id,
+        "node_ids": [{"id": node_id, "include_history": False}],
+        "ttl_seconds": 1,
+    }).json()["token"]
+    pub = client.get("/identity/anna").json()["public_key"]
+    recipient = _app(tmp_path, owner="bruno", name="bruno")
+    # receive immediately (still valid), then it expires before /shared
+    import time
+    token_id = _receive(recipient, token, pub)
+    time.sleep(2)
+    assert TestClient(recipient).get(f"/shared/{token_id}").status_code == 403

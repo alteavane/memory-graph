@@ -18,6 +18,7 @@ from memorygraph.api.schemas import (
     IdentityResponse,
     InboxRequest,
     InboxResponse,
+    SharedResponse,
     TokenIssueRequest,
     TokenIssueResponse,
 )
@@ -145,5 +146,33 @@ def create_app(owner_id: str, db_path: str) -> FastAPI:
             return InboxResponse(token_id=token.id)
 
         return manager.submit(owner_id, op)
+
+    @app.get("/shared/{token_id}", response_model=SharedResponse)
+    def get_shared(token_id: str) -> SharedResponse:
+        """Read-only view of a stored, re-verified shared subgraph.
+
+        404 if the token is unknown; 403 if its signature or expiry no longer verify.
+        Returns only what the token embeds — never reads the local graph.
+        """
+
+        def load(store: GraphStore):
+            b = _bundle(store)
+            token = b.token.get(token_id)
+            if token is None:
+                return None, None
+            issuer_pub = b.identity.get_public_key(token.issuer_id)
+            return token, issuer_pub
+
+        token, issuer_pub = manager.submit(owner_id, load)
+        if token is None:
+            raise HTTPException(status_code=404, detail=f"no token {token_id}")
+        if issuer_pub is None or not verify_token(token, issuer_pub, now=_utc_now()).ok:
+            raise HTTPException(status_code=403, detail="token does not verify")
+        return SharedResponse(
+            issuer_id=token.issuer_id,
+            project_summary=token.project_summary,
+            wiki_page_ids=list(token.wiki_page_ids),
+            nodes=token.nodes,
+        )
 
     return app
