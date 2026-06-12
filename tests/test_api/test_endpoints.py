@@ -1,10 +1,8 @@
 # Copyright (C) 2026 AlteaVane
 # SPDX-License-Identifier: AGPL-3.0-or-later
-import pytest
 from fastapi.testclient import TestClient
 
 from memorygraph.api.app import create_app
-from memorygraph.api.writer import WriterManager  # noqa: F401  (used indirectly)
 from memorygraph.graph.models import NodeType
 
 
