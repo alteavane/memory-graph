@@ -121,3 +121,39 @@ def test_user_identity_fields():
     assert identity.public_key == "pub"
     assert identity.private_key == "priv"
     assert identity.created_at == now
+
+
+def test_user_network_consent_defaults_all_false():
+    from memorygraph.graph.models import UserNetworkConsent
+    consent = UserNetworkConsent(user_id="u1")
+    assert consent.user_id == "u1"
+    assert consent.discoverable is False
+    assert consent.share_deadends is False
+    assert consent.share_triggers is False
+    assert consent.auto_propose is False
+    assert consent.updated_at is None
+
+
+def test_subgraph_token_fields():
+    from memorygraph.graph.models import SubgraphToken
+    now = datetime(2026, 6, 10, 9, 0, 0)
+    token = SubgraphToken(
+        id="t1", issuer_id="anna", recipient_id="bruno",
+        nodes=[{"id": "n1", "type": "Hypothesis", "include_history": False, "states": []}],
+        project_summary="public summary",
+        wiki_page_ids=[],
+        forkable=False,
+        expires_at=now,
+        signature="sig",
+        created_at=now,
+    )
+    assert token.issuer_id == "anna"
+    assert token.recipient_id == "bruno"
+    assert token.project_summary == "public summary"
+    assert token.wiki_page_ids == []
+    assert token.nodes[0]["type"] == "Hypothesis"
+    assert token.id == "t1"
+    assert token.forkable is False
+    assert token.expires_at == now
+    assert token.signature == "sig"
+    assert token.created_at == now

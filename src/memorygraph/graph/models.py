@@ -123,3 +123,31 @@ class UserIdentity:
     public_key: str
     private_key: str   # PRIVATE — same rule as Project.full_context
     created_at: datetime
+
+
+@dataclass
+class UserNetworkConsent:
+    """Per-user sharing policy. Every flag defaults to false — maximum privacy until opted in."""
+
+    user_id: str
+    discoverable: bool = False      # is my graph searchable by others?
+    share_deadends: bool = False    # may DeadEnd nodes appear in tokens/matches?
+    share_triggers: bool = False    # may the "why" (trigger) text be shared?
+    auto_propose: bool = False      # may the agent propose matches autonomously?
+    updated_at: datetime | None = None
+
+
+@dataclass
+class SubgraphToken:
+    """A signed, self-contained share — immutable snapshot of nodes at issue time."""
+
+    id: str
+    issuer_id: str
+    recipient_id: str
+    nodes: list[dict]        # [{id, type, include_history, states:[{version,content,confidence,trigger,created_at}]}]
+    project_summary: str     # snapshot at issue time — NOT a live reference
+    wiki_page_ids: list[str]  # default empty — explicit selection only
+    forkable: bool
+    expires_at: datetime
+    signature: str           # Ed25519 over the canonical payload (all fields except signature)
+    created_at: datetime

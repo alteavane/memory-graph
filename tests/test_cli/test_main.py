@@ -121,3 +121,102 @@ class TestIdentityCommands:
         with patch("cli.main._get_identity_store", return_value=IdentityStore(c)):
             result = runner.invoke(app, ["identity-show", "--user-id", "ghost"])
         assert result.exit_code == 1
+
+
+class TestConsentCommands:
+    def _bundle(self, tmp_path):
+        import kuzu
+        from types import SimpleNamespace
+
+        from memorygraph.auth.consent import ConsentStore
+        from memorygraph.auth.identity import IdentityStore
+        from memorygraph.auth.schema import init_auth_schema
+        from memorygraph.auth.token import TokenStore
+        from memorygraph.context.project import ProjectStore
+        from memorygraph.context.schema import init_context_schema
+        from memorygraph.graph.schema import init_schema
+
+        db = kuzu.Database(str(tmp_path / "auth.kuzu"))
+        c = kuzu.Connection(db)
+        init_schema(c)
+        init_context_schema(c)
+        init_auth_schema(c)
+        return SimpleNamespace(
+            conn=c,
+            identity=IdentityStore(c), consent=ConsentStore(c),
+            project=ProjectStore(c), token=TokenStore(c),
+        )
+
+    def test_consent_set_then_show(self, tmp_path):
+        bundle = self._bundle(tmp_path)
+        with patch("cli.main._get_auth_bundle", return_value=bundle):
+            set_result = runner.invoke(app, [
+                "consent-set", "--user-id", "u1", "--share-deadends",
+            ])
+            show_result = runner.invoke(app, ["consent-show", "--user-id", "u1"])
+        assert set_result.exit_code == 0, set_result.output
+        assert show_result.exit_code == 0, show_result.output
+        assert "share_deadends" in show_result.output
+        assert "True" in show_result.output
+
+
+class TestTokenCommands:
+    def _seeded_bundle(self, tmp_path):
+        from types import SimpleNamespace
+
+        from memorygraph.auth.consent import ConsentStore
+        from memorygraph.auth.identity import IdentityStore
+        from memorygraph.auth.schema import init_auth_schema
+        from memorygraph.auth.token import TokenStore
+        from memorygraph.context.project import ProjectStore
+        from memorygraph.context.schema import init_context_schema
+        from memorygraph.graph.models import NodeType
+        from memorygraph.graph.store import GraphStore
+
+        graph = GraphStore(str(tmp_path / "auth.kuzu"))
+        c = graph._conn
+        init_context_schema(c)
+        init_auth_schema(c)
+        identity = IdentityStore(c)
+        project = ProjectStore(c)
+        identity.create_identity("anna")
+        proj = project.create_project("anna", "T", "obj", "public summary", "secret")
+        node = graph.create_node("anna", NodeType.HYPOTHESIS, "pH matters", 0.6, "obs")
+        bundle = SimpleNamespace(
+            graph=graph, identity=identity, consent=ConsentStore(c),
+            project=project, token=TokenStore(c),
+        )
+        return bundle, proj.id, node.id
+
+    def test_token_issue_then_verify(self, tmp_path):
+        bundle, project_id, node_id = self._seeded_bundle(tmp_path)
+        with patch("cli.main._get_auth_bundle", return_value=bundle):
+            issue_result = runner.invoke(app, [
+                "token-issue",
+                "--issuer-id", "anna", "--recipient-id", "bruno",
+                "--project-id", project_id, "--node-ids", node_id,
+                "--ttl-seconds", "3600",
+            ])
+            assert issue_result.exit_code == 0, issue_result.output
+            token_line = [l for l in issue_result.output.splitlines() if l.strip().startswith("{")][0]
+            verify_result = runner.invoke(
+                app, ["token-verify", "--issuer-id", "anna", "--token", token_line.strip()],
+            )
+        assert verify_result.exit_code == 0, verify_result.output
+        assert "VALID" in verify_result.output.upper()
+
+    def test_token_verify_rejects_tampered(self, tmp_path):
+        bundle, project_id, node_id = self._seeded_bundle(tmp_path)
+        with patch("cli.main._get_auth_bundle", return_value=bundle):
+            issue_result = runner.invoke(app, [
+                "token-issue",
+                "--issuer-id", "anna", "--recipient-id", "bruno",
+                "--project-id", project_id, "--node-ids", node_id,
+                "--ttl-seconds", "3600",
+            ])
+            token_line = [l for l in issue_result.output.splitlines() if l.strip().startswith("{")][0]
+            tampered = token_line.strip().replace("public summary", "tampered summary")
+            verify_result = runner.invoke(
+                app, ["token-verify", "--issuer-id", "anna", "--token", tampered],
+            )
+        assert verify_result.exit_code == 1

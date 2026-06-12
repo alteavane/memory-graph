@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 import typer
 from rich.console import Console
@@ -16,8 +16,14 @@ from memorygraph.graph.store import GraphStore
 from memorygraph.context import ContextStore
 from memorygraph.agent.agent import MemoryAgent
 from memorygraph.llm import make_llm
+from types import SimpleNamespace
+
 from memorygraph.auth.identity import IdentityStore
 from memorygraph.auth.schema import init_auth_schema
+from memorygraph.auth.consent import ConsentStore
+from memorygraph.auth.token import TokenStore, build_token, deserialize, serialize, verify_token
+from memorygraph.context.project import ProjectStore
+from memorygraph.context.schema import init_context_schema
 
 app = typer.Typer(help="MemoryGraph CLI - personal belief-based graph store.")
 console = Console()
@@ -35,6 +41,21 @@ def _get_identity_store() -> IdentityStore:
     store = GraphStore(DB_PATH)
     init_auth_schema(store._conn)
     return IdentityStore(store._conn)
+
+
+def _get_auth_bundle() -> SimpleNamespace:
+    """One GraphStore connection, all auth/context stores sharing it (single-writer per process)."""
+    store = GraphStore(DB_PATH)
+    conn = store._conn
+    init_context_schema(conn)
+    init_auth_schema(conn)
+    return SimpleNamespace(
+        graph=store,
+        identity=IdentityStore(conn),
+        consent=ConsentStore(conn),
+        project=ProjectStore(conn),
+        token=TokenStore(conn),
+    )
 
 
 def _fmt_ts(dt: datetime | None) -> str:
@@ -342,6 +363,93 @@ def identity_show(
         console.print(f"[red]No identity found for {user_id}[/red]")
         raise typer.Exit(code=1)
     console.print(f"Public key for [bold]{user_id}[/bold]: {public_key}")
+
+
+@app.command(name="consent-show")
+def consent_show(
+    user_id: str = typer.Option(..., help="User ID"),
+) -> None:
+    """Show a user's network-sharing consent flags."""
+    bundle = _get_auth_bundle()
+    consent = bundle.consent.get_consent(user_id)
+    console.print(f"[bold]Consent for {user_id}[/bold]")
+    console.print(f"  discoverable:   {consent.discoverable}")
+    console.print(f"  share_deadends: {consent.share_deadends}")
+    console.print(f"  share_triggers: {consent.share_triggers}")
+    console.print(f"  auto_propose:   {consent.auto_propose}")
+
+
+@app.command(name="consent-set")
+def consent_set(
+    user_id: str = typer.Option(..., help="User ID"),
+    discoverable: bool | None = typer.Option(None, "--discoverable/--no-discoverable"),
+    share_deadends: bool | None = typer.Option(None, "--share-deadends/--no-share-deadends"),
+    share_triggers: bool | None = typer.Option(None, "--share-triggers/--no-share-triggers"),
+    auto_propose: bool | None = typer.Option(None, "--auto-propose/--no-auto-propose"),
+) -> None:
+    """Update one or more consent flags (unspecified flags keep their current value)."""
+    bundle = _get_auth_bundle()
+    consent = bundle.consent.set_consent(
+        user_id, discoverable=discoverable, share_deadends=share_deadends,
+        share_triggers=share_triggers, auto_propose=auto_propose,
+    )
+    console.print(f"[green]✓[/green] Consent updated for [bold]{user_id}[/bold]")
+    console.print(f"  discoverable:   {consent.discoverable}")
+    console.print(f"  share_deadends: {consent.share_deadends}")
+    console.print(f"  share_triggers: {consent.share_triggers}")
+    console.print(f"  auto_propose:   {consent.auto_propose}")
+
+
+@app.command(name="token-issue")
+def token_issue(
+    issuer_id: str = typer.Option(..., help="Issuer user ID"),
+    recipient_id: str = typer.Option(..., help="Recipient user ID"),
+    project_id: str = typer.Option(..., help="Project whose summary is snapshotted"),
+    node_ids: str = typer.Option(..., help="Node IDs to share, comma-separated"),
+    include_history: bool = typer.Option(
+        False, "--include-history", help="Embed full history for every selected node"
+    ),
+    wiki_page_ids: str | None = typer.Option(
+        None, help="Wiki page IDs to include, comma-separated (default: none)"
+    ),
+    forkable: bool = typer.Option(False, "--forkable", help="Allow the recipient to fork"),
+    ttl_seconds: int = typer.Option(86400, help="Token lifetime in seconds"),
+) -> None:
+    """Issue and sign a SubgraphToken, persist it, and print the serialized token."""
+    bundle = _get_auth_bundle()
+    ids = [n.strip() for n in node_ids.split(",") if n.strip()]
+    wiki = [w.strip() for w in wiki_page_ids.split(",")] if wiki_page_ids else []
+    selection = [{"id": nid, "include_history": include_history} for nid in ids]
+    token = build_token(
+        graph_store=bundle.graph, identity_store=bundle.identity,
+        consent_store=bundle.consent, project_store=bundle.project,
+        issuer_id=issuer_id, recipient_id=recipient_id, project_id=project_id,
+        node_ids=selection, wiki_page_ids=wiki, forkable=forkable, ttl_seconds=ttl_seconds,
+    )
+    bundle.token.save(token)
+    console.print(f"[green]✓[/green] Token issued: [bold]{token.id}[/bold]")
+    console.print(serialize(token), soft_wrap=True)
+
+
+@app.command(name="token-verify")
+def token_verify(
+    issuer_id: str = typer.Option(..., help="Issuer user ID (its public key verifies the token)"),
+    token: str = typer.Option(..., help="Serialized token JSON"),
+) -> None:
+    """Verify a serialized token against the issuer's public key. Exit 1 if invalid."""
+    bundle = _get_auth_bundle()
+    public_key = bundle.identity.get_public_key(issuer_id)
+    if public_key is None:
+        console.print(f"[red]No identity found for {issuer_id}[/red]")
+        raise typer.Exit(code=1)
+    parsed = deserialize(token)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # naive UTC, matching issuance
+    result = verify_token(parsed, public_key, now=now)
+    if result.ok:
+        console.print(f"[green]✓ VALID[/green] token {parsed.id} for {parsed.recipient_id}")
+    else:
+        console.print(f"[red]✗ INVALID[/red] ({result.reason})")
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
