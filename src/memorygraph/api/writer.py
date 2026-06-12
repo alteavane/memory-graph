@@ -45,9 +45,10 @@ class WriterManager:
             return op(self.writer(user_id))
 
     def close(self) -> None:
-        """Drop all cached writers. Connections are released when garbage-collected."""
+        """Drop all cached writers and locks. Connections are released when garbage-collected."""
         with self._guard:
             self._writers.clear()
+            self._locks.clear()
 
     def _lock_for(self, user_id: str) -> threading.Lock:
         with self._guard:

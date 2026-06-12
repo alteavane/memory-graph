@@ -43,6 +43,7 @@ def test_submit_serializes_concurrent_ops(tmp_path):
 
     mgr = _mgr(tmp_path)
     order = []
+    barrier = threading.Barrier(8)  # force all threads live at once → real contention
 
     def op(tag):
         def inner(_store):
@@ -51,7 +52,11 @@ def test_submit_serializes_concurrent_ops(tmp_path):
             return tag
         return inner
 
-    threads = [threading.Thread(target=lambda t=t: mgr.submit("anna", op(t))) for t in range(8)]
+    def run(tag):
+        barrier.wait()  # all 8 threads reach submit together
+        mgr.submit("anna", op(tag))
+
+    threads = [threading.Thread(target=lambda t=t: run(t)) for t in range(8)]
     for t in threads:
         t.start()
     for t in threads:
