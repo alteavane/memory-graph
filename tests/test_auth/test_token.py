@@ -196,3 +196,36 @@ def test_build_token_unknown_issuer_raises(stores):
             issuer_id="ghost", recipient_id="bruno", project_id=proj.id,
             node_ids=[], ttl_seconds=3600, now=datetime(2026, 6, 10, 9, 0, 0),
         )
+
+
+from memorygraph.auth.token import TokenStore
+
+
+def test_token_store_save_and_get_roundtrip(stores, tmp_path):
+    token_store = TokenStore(stores.graph._conn)
+    stores.identity.create_identity("anna")
+    proj = stores.project.create_project("anna", "T", "obj", "public summary", "ctx")
+    node = stores.graph.create_node("anna", NodeType.HYPOTHESIS, "pH", 0.6, "obs")
+    token = build_token(
+        graph_store=stores.graph, identity_store=stores.identity,
+        consent_store=stores.consent, project_store=stores.project,
+        issuer_id="anna", recipient_id="bruno", project_id=proj.id,
+        node_ids=[{"id": node.id, "include_history": False}],
+        ttl_seconds=3600, now=datetime(2026, 6, 10, 9, 0, 0),
+    )
+    token_store.save(token)
+    loaded = token_store.get(token.id)
+    assert loaded is not None
+    assert loaded.id == token.id
+    assert loaded.project_summary == "public summary"
+    assert loaded.nodes == token.nodes
+    assert loaded.signature == token.signature
+    assert loaded.expires_at == token.expires_at
+    # the persisted token still verifies
+    pub = stores.identity.get_public_key("anna")
+    assert verify_token(loaded, pub, now=datetime(2026, 6, 10, 9, 30, 0)).ok is True
+
+
+def test_token_store_get_missing_returns_none(stores):
+    token_store = TokenStore(stores.graph._conn)
+    assert token_store.get("nope") is None

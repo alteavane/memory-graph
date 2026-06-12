@@ -13,6 +13,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
+import kuzu
+
 from memorygraph.auth.consent import ConsentStore
 from memorygraph.auth.crypto import sign, verify
 from memorygraph.auth.identity import IdentityStore
@@ -167,3 +169,42 @@ def build_token(
     signature = sign(_token_payload(token), identity.private_key)
     token.signature = signature
     return token
+
+
+class TokenStore:
+    """Persists issued SubgraphTokens. nodes/wiki_page_ids are stored as JSON strings."""
+
+    def __init__(self, conn: kuzu.Connection) -> None:
+        self._conn = conn
+
+    def save(self, token: SubgraphToken) -> None:
+        """Persist an issued token. Overwrites are not expected — token ids are unique."""
+        self._conn.execute(
+            "CREATE (t:SubgraphToken {id: $id, issuer_id: $iss, recipient_id: $rec, "
+            "node_ids: $nodes, project_summary: $summary, wiki_page_ids: $wiki, "
+            "forkable: $fork, expires_at: $exp, signature: $sig, created_at: $created})",
+            {
+                "id": token.id, "iss": token.issuer_id, "rec": token.recipient_id,
+                "nodes": json.dumps(token.nodes), "summary": token.project_summary,
+                "wiki": json.dumps(list(token.wiki_page_ids)), "fork": token.forkable,
+                "exp": token.expires_at, "sig": token.signature, "created": token.created_at,
+            },
+        )
+
+    def get(self, token_id: str) -> SubgraphToken | None:
+        """Load a persisted token by id, or None if it does not exist."""
+        result = self._conn.execute(
+            "MATCH (t:SubgraphToken) WHERE t.id = $id "
+            "RETURN t.id, t.issuer_id, t.recipient_id, t.node_ids, t.project_summary, "
+            "t.wiki_page_ids, t.forkable, t.expires_at, t.signature, t.created_at",
+            {"id": token_id},
+        )
+        if not result.has_next():
+            return None
+        row = result.get_next()
+        return SubgraphToken(
+            id=row[0], issuer_id=row[1], recipient_id=row[2],
+            nodes=json.loads(row[3]), project_summary=row[4],
+            wiki_page_ids=json.loads(row[5]), forkable=row[6],
+            expires_at=row[7], signature=row[8], created_at=row[9],
+        )
