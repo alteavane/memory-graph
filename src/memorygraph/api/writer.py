@@ -45,8 +45,10 @@ class WriterManager:
             return op(self.writer(user_id))
 
     def close(self) -> None:
-        """Drop all cached writers and locks. Connections are released when garbage-collected."""
+        """Close every cached writer's Kuzu connection and drop all writers and locks."""
         with self._guard:
+            for store in self._writers.values():
+                store.close()
             self._writers.clear()
             self._locks.clear()
 
