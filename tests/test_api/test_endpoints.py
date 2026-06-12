@@ -196,3 +196,12 @@ def test_post_inbox_rejects_malformed_token(tmp_path):
     )
     assert resp.status_code == 422
     assert "malformed" in resp.json()["detail"]
+
+
+def test_lifespan_shutdown_closes_manager(tmp_path):
+    # using TestClient as a context manager triggers FastAPI lifespan startup+shutdown
+    app = _app(tmp_path)
+    with TestClient(app) as client:
+        assert client.get("/identity/anna").status_code == 200
+    # shutdown ran manager.close() → cached writers released
+    assert app.state.manager._writers == {}
