@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 from fastapi import FastAPI, HTTPException
 
-from memorygraph.api.schemas import IdentityResponse
+from memorygraph.api.schemas import ConsentResponse, ConsentUpdate, IdentityResponse
 from memorygraph.api.writer import WriterManager
 from memorygraph.auth.consent import ConsentStore
 from memorygraph.auth.identity import IdentityStore
@@ -61,5 +61,35 @@ def create_app(owner_id: str, db_path: str) -> FastAPI:
         if public_key is None:
             raise HTTPException(status_code=404, detail=f"no identity for {user_id}")
         return IdentityResponse(user_id=user_id, public_key=public_key)
+
+    def _consent_response(store: GraphStore) -> ConsentResponse:
+        consent = _bundle(store).consent.get_consent(owner_id)
+        return ConsentResponse(
+            discoverable=consent.discoverable,
+            share_deadends=consent.share_deadends,
+            share_triggers=consent.share_triggers,
+            auto_propose=consent.auto_propose,
+        )
+
+    @app.get("/consent", response_model=ConsentResponse)
+    def get_consent() -> ConsentResponse:
+        """Read the owner's network-sharing consent flags."""
+        return manager.submit(owner_id, _consent_response)
+
+    @app.put("/consent", response_model=ConsentResponse)
+    def put_consent(update: ConsentUpdate) -> ConsentResponse:
+        """Update one or more of the owner's consent flags (omitted flags unchanged)."""
+
+        def op(store: GraphStore) -> ConsentResponse:
+            _bundle(store).consent.set_consent(
+                owner_id,
+                discoverable=update.discoverable,
+                share_deadends=update.share_deadends,
+                share_triggers=update.share_triggers,
+                auto_propose=update.auto_propose,
+            )
+            return _consent_response(store)
+
+        return manager.submit(owner_id, op)
 
     return app

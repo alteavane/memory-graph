@@ -40,3 +40,25 @@ def test_get_identity_unknown_user_404(tmp_path):
     app = _app(tmp_path)
     client = TestClient(app)
     assert client.get("/identity/ghost").status_code == 404
+
+
+def test_get_consent_defaults_all_false(tmp_path):
+    app = _app(tmp_path)
+    client = TestClient(app)
+    body = client.get("/consent").json()
+    assert body == {
+        "discoverable": False, "share_deadends": False,
+        "share_triggers": False, "auto_propose": False,
+    }
+
+
+def test_put_consent_updates_and_persists(tmp_path):
+    app = _app(tmp_path)
+    client = TestClient(app)
+    resp = client.put("/consent", json={"share_deadends": True, "share_triggers": True})
+    assert resp.status_code == 200
+    assert resp.json()["share_deadends"] is True
+    # persisted across requests
+    reread = client.get("/consent").json()
+    assert reread["share_deadends"] is True
+    assert reread["discoverable"] is False        # untouched stays default
