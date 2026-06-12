@@ -12,11 +12,17 @@ from types import SimpleNamespace
 
 from fastapi import FastAPI, HTTPException
 
-from memorygraph.api.schemas import ConsentResponse, ConsentUpdate, IdentityResponse
+from memorygraph.api.schemas import (
+    ConsentResponse,
+    ConsentUpdate,
+    IdentityResponse,
+    TokenIssueRequest,
+    TokenIssueResponse,
+)
 from memorygraph.api.writer import WriterManager
 from memorygraph.auth.consent import ConsentStore
 from memorygraph.auth.identity import IdentityStore
-from memorygraph.auth.token import TokenStore
+from memorygraph.auth.token import TokenStore, build_token, serialize
 from memorygraph.context.project import ProjectStore
 from memorygraph.graph.store import GraphStore
 
@@ -89,6 +95,32 @@ def create_app(owner_id: str, db_path: str) -> FastAPI:
                 auto_propose=update.auto_propose,
             )
             return _consent_response(store)
+
+        return manager.submit(owner_id, op)
+
+    @app.post("/tokens", response_model=TokenIssueResponse)
+    def post_tokens(req: TokenIssueRequest) -> TokenIssueResponse:
+        """Build + sign a SubgraphToken for a recipient (issuer = owner) and persist it."""
+
+        def op(store: GraphStore) -> TokenIssueResponse:
+            b = _bundle(store)
+            selection = [
+                {"id": sel.id, "include_history": sel.include_history}
+                for sel in req.node_ids
+            ]
+            try:
+                token = build_token(
+                    graph_store=b.graph, identity_store=b.identity,
+                    consent_store=b.consent, project_store=b.project,
+                    issuer_id=owner_id, recipient_id=req.recipient_id,
+                    project_id=req.project_id, node_ids=selection,
+                    wiki_page_ids=req.wiki_page_ids, forkable=req.forkable,
+                    ttl_seconds=req.ttl_seconds, now=_utc_now(),
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            b.token.save(token)
+            return TokenIssueResponse(token_id=token.id, token=serialize(token))
 
         return manager.submit(owner_id, op)
 

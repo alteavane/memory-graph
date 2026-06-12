@@ -62,3 +62,31 @@ def test_put_consent_updates_and_persists(tmp_path):
     reread = client.get("/consent").json()
     assert reread["share_deadends"] is True
     assert reread["discoverable"] is False        # untouched stays default
+
+
+def test_post_tokens_issues_signed_token(tmp_path):
+    app = _app(tmp_path)
+    project_id, node_id = _seed_project_and_node(app)
+    client = TestClient(app)
+    resp = client.post("/tokens", json={
+        "recipient_id": "bruno", "project_id": project_id,
+        "node_ids": [{"id": node_id, "include_history": False}],
+        "ttl_seconds": 3600,
+    })
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["token_id"]
+    assert "public summary" in body["token"]      # serialized token carries the snapshot
+    assert "SECRET ctx" not in body["token"]       # full_context never leaks
+
+
+def test_post_tokens_unknown_node_is_rejected(tmp_path):
+    app = _app(tmp_path)
+    project_id, _ = _seed_project_and_node(app)
+    client = TestClient(app)
+    resp = client.post("/tokens", json={
+        "recipient_id": "bruno", "project_id": project_id,
+        "node_ids": [{"id": "ghost-node", "include_history": False}],
+        "ttl_seconds": 3600,
+    })
+    assert resp.status_code == 404
