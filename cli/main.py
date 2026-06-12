@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 import typer
 from rich.console import Console
@@ -398,6 +398,58 @@ def consent_set(
     console.print(f"  share_deadends: {consent.share_deadends}")
     console.print(f"  share_triggers: {consent.share_triggers}")
     console.print(f"  auto_propose:   {consent.auto_propose}")
+
+
+@app.command(name="token-issue")
+def token_issue(
+    issuer_id: str = typer.Option(..., help="Issuer user ID"),
+    recipient_id: str = typer.Option(..., help="Recipient user ID"),
+    project_id: str = typer.Option(..., help="Project whose summary is snapshotted"),
+    node_ids: str = typer.Option(..., help="Node IDs to share, comma-separated"),
+    include_history: bool = typer.Option(
+        False, "--include-history", help="Embed full history for every selected node"
+    ),
+    wiki_page_ids: str | None = typer.Option(
+        None, help="Wiki page IDs to include, comma-separated (default: none)"
+    ),
+    forkable: bool = typer.Option(False, "--forkable", help="Allow the recipient to fork"),
+    ttl_seconds: int = typer.Option(86400, help="Token lifetime in seconds"),
+) -> None:
+    """Issue and sign a SubgraphToken, persist it, and print the serialized token."""
+    bundle = _get_auth_bundle()
+    ids = [n.strip() for n in node_ids.split(",") if n.strip()]
+    wiki = [w.strip() for w in wiki_page_ids.split(",")] if wiki_page_ids else []
+    selection = [{"id": nid, "include_history": include_history} for nid in ids]
+    token = build_token(
+        graph_store=bundle.graph, identity_store=bundle.identity,
+        consent_store=bundle.consent, project_store=bundle.project,
+        issuer_id=issuer_id, recipient_id=recipient_id, project_id=project_id,
+        node_ids=selection, wiki_page_ids=wiki, forkable=forkable, ttl_seconds=ttl_seconds,
+    )
+    bundle.token.save(token)
+    console.print(f"[green]✓[/green] Token issued: [bold]{token.id}[/bold]")
+    console.print(serialize(token), soft_wrap=True)
+
+
+@app.command(name="token-verify")
+def token_verify(
+    issuer_id: str = typer.Option(..., help="Issuer user ID (its public key verifies the token)"),
+    token: str = typer.Option(..., help="Serialized token JSON"),
+) -> None:
+    """Verify a serialized token against the issuer's public key. Exit 1 if invalid."""
+    bundle = _get_auth_bundle()
+    public_key = bundle.identity.get_public_key(issuer_id)
+    if public_key is None:
+        console.print(f"[red]No identity found for {issuer_id}[/red]")
+        raise typer.Exit(code=1)
+    parsed = deserialize(token)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # naive UTC, matching issuance
+    result = verify_token(parsed, public_key, now=now)
+    if result.ok:
+        console.print(f"[green]✓ VALID[/green] token {parsed.id} for {parsed.recipient_id}")
+    else:
+        console.print(f"[red]✗ INVALID[/red] ({result.reason})")
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

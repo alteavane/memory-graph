@@ -158,3 +158,65 @@ class TestConsentCommands:
         assert show_result.exit_code == 0, show_result.output
         assert "share_deadends" in show_result.output
         assert "True" in show_result.output
+
+
+class TestTokenCommands:
+    def _seeded_bundle(self, tmp_path):
+        from types import SimpleNamespace
+
+        from memorygraph.auth.consent import ConsentStore
+        from memorygraph.auth.identity import IdentityStore
+        from memorygraph.auth.schema import init_auth_schema
+        from memorygraph.auth.token import TokenStore
+        from memorygraph.context.project import ProjectStore
+        from memorygraph.context.schema import init_context_schema
+        from memorygraph.graph.models import NodeType
+        from memorygraph.graph.store import GraphStore
+
+        graph = GraphStore(str(tmp_path / "auth.kuzu"))
+        c = graph._conn
+        init_context_schema(c)
+        init_auth_schema(c)
+        identity = IdentityStore(c)
+        project = ProjectStore(c)
+        identity.create_identity("anna")
+        proj = project.create_project("anna", "T", "obj", "public summary", "secret")
+        node = graph.create_node("anna", NodeType.HYPOTHESIS, "pH matters", 0.6, "obs")
+        bundle = SimpleNamespace(
+            graph=graph, identity=identity, consent=ConsentStore(c),
+            project=project, token=TokenStore(c),
+        )
+        return bundle, proj.id, node.id
+
+    def test_token_issue_then_verify(self, tmp_path):
+        bundle, project_id, node_id = self._seeded_bundle(tmp_path)
+        with patch("cli.main._get_auth_bundle", return_value=bundle):
+            issue_result = runner.invoke(app, [
+                "token-issue",
+                "--issuer-id", "anna", "--recipient-id", "bruno",
+                "--project-id", project_id, "--node-ids", node_id,
+                "--ttl-seconds", "3600",
+            ])
+            assert issue_result.exit_code == 0, issue_result.output
+            token_line = [l for l in issue_result.output.splitlines() if l.strip().startswith("{")][0]
+            verify_result = runner.invoke(
+                app, ["token-verify", "--issuer-id", "anna", "--token", token_line.strip()],
+            )
+        assert verify_result.exit_code == 0, verify_result.output
+        assert "VALID" in verify_result.output.upper()
+
+    def test_token_verify_rejects_tampered(self, tmp_path):
+        bundle, project_id, node_id = self._seeded_bundle(tmp_path)
+        with patch("cli.main._get_auth_bundle", return_value=bundle):
+            issue_result = runner.invoke(app, [
+                "token-issue",
+                "--issuer-id", "anna", "--recipient-id", "bruno",
+                "--project-id", project_id, "--node-ids", node_id,
+                "--ttl-seconds", "3600",
+            ])
+            token_line = [l for l in issue_result.output.splitlines() if l.strip().startswith("{")][0]
+            tampered = token_line.strip().replace("public summary", "tampered summary")
+            verify_result = runner.invoke(
+                app, ["token-verify", "--issuer-id", "anna", "--token", tampered],
+            )
+        assert verify_result.exit_code == 1
