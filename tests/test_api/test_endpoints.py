@@ -186,3 +186,13 @@ def test_get_shared_missing_issuer_key_403(tmp_path):
     tok = deserialize(token_str)
     recipient.state.manager.submit("bruno", lambda s: TokenStore(s._conn).save(tok))
     assert TestClient(recipient).get(f"/shared/{tok.id}").status_code == 403
+
+
+def test_post_inbox_rejects_malformed_token(tmp_path):
+    # a structurally broken token string fails at deserialize → 422 "malformed token"
+    app = _app(tmp_path, owner="bruno", name="bruno")
+    resp = TestClient(app).post(
+        "/inbox/tokens", json={"token": "not-a-valid-token", "issuer_public_key": "x"}
+    )
+    assert resp.status_code == 422
+    assert "malformed" in resp.json()["detail"]

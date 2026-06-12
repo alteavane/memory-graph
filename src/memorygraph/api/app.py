@@ -7,6 +7,8 @@ the single Kuzu connection is never used concurrently.
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
@@ -57,7 +59,12 @@ def create_app(owner_id: str, db_path: str) -> FastAPI:
 
     manager.submit(owner_id, _ensure_identity)
 
-    app = FastAPI(title="MemoryGraph instance API")
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        yield
+        manager.close()  # release Kuzu connections deterministically on shutdown
+
+    app = FastAPI(title="MemoryGraph instance API", lifespan=lifespan)
     app.state.owner_id = owner_id
     app.state.manager = manager
 
@@ -155,7 +162,7 @@ def create_app(owner_id: str, db_path: str) -> FastAPI:
         Returns only what the token embeds — never reads the local graph.
         """
 
-        def load(store: GraphStore):
+        def load(store: GraphStore) -> tuple[object | None, str | None]:
             b = _bundle(store)
             token = b.token.get(token_id)
             if token is None:
